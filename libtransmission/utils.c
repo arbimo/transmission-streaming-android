@@ -264,7 +264,7 @@ tr_deepLog( const char  * file,
         va_start( args, fmt );
         evbuffer_add_vprintf( buf, fmt, args );
 #ifdef ANDROID
-        _android_log_vprint(ANDROID_LOG_INFO, LOG_TAG, fmt, args);
+        __android_log_vprint(ANDROID_LOG_INFO, LOG_TAG, fmt, args);
 #endif
         va_end( args );
         evbuffer_add_printf( buf, " (%s:%d)\n", base, line );

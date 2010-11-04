@@ -11,7 +11,7 @@ CFLAGS := -Wpointer-arith -Wwrite-strings -Wunused -Winline \
  -Wno-system-headers -DHAVE_CONFIG_H $(MY_CFLAGS)
 
 include $(CLEAR_VARS)
-include $(LOCAL_PATH)/lib/Makefile.in
+include $(LOCAL_PATH)/lib/Makefile.inc
 
 LOCAL_SRC_FILES := $(addprefix lib/,$(CSOURCES))
 LOCAL_CFLAGS += $(CFLAGS)
