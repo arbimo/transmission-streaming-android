@@ -23,6 +23,7 @@
  *****************************************************************************/
 
 #include <assert.h>
+#include <time.h>
 
 #include "event.h"
 #include "instrumentation.h"
@@ -116,15 +117,16 @@ tr_instruMsg( tr_session * session, const char * fmt, ... )
         va_list           args;
         char              timestr[64];
         struct evbuffer * buf = evbuffer_new( );
+        struct timeval    tv;
         
         assert( session->fd_instru > 0 );
         
-        evbuffer_add_printf( buf, "[%s] ",
-                            tr_getLogTimeStr( timestr, sizeof( timestr ) ) );
+        gettimeofday( &tv, NULL );
+        evbuffer_add_printf( buf, "%lu.%03d ", tv.tv_sec, (int) tv.tv_usec / 1000 );
                             
         va_start( args, fmt );
         evbuffer_add_vprintf( buf, fmt, args );
-        evbuffer_add_printf( buf, "\n" );
+        evbuffer_add_printf( buf, " \n" );
         
         evbuffer_write( buf, session->fd_instru );
     }
