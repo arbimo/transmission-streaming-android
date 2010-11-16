@@ -102,6 +102,7 @@ static const struct tr_option options[] =
     { 953, "global-seedratio", "All torrents, unless overridden by a per-torrent setting, should seed until a specific ratio", "gsr", 1, "ratio" },
     { 954, "no-global-seedratio", "All torrents, unless overridden by a per-torrent setting, should seed regardless of ratio", "GSR", 0, NULL },
     { 'x', "pid-file", "Enable PID file", "x", 1, "<pid-file>" },
+    { 850, "instrumentation", "Enable instrumentation logfile", NULL, 0, NULL },
     { 0, NULL, NULL, NULL, 0, NULL }
 };
 
@@ -407,6 +408,8 @@ main( int argc, char ** argv )
             case 'y': tr_bencDictAddBool( &settings, TR_PREFS_KEY_LPD_ENABLED, TRUE );
                       break;
             case 'Y': tr_bencDictAddBool( &settings, TR_PREFS_KEY_LPD_ENABLED, FALSE );
+                      break;
+            case 850: tr_bencDictAddBool( &settings, TR_PREFS_KEY_INSTRUMENTATION_ENABLED, TRUE);
                       break;
             default:  showUsage( );
                       break;

@@ -30,6 +30,7 @@
 #include "blocklist.h"
 #include "crypto.h"
 #include "fdlimit.h"
+#include "instrumentation.h"
 #include "list.h"
 #include "metainfo.h" /* tr_metainfoFree */
 #include "net.h"
@@ -300,6 +301,7 @@ tr_sessionGetDefaultSettings( const char * configDir UNUSED, tr_benc * d )
     tr_bencDictAddStr ( d, TR_PREFS_KEY_BIND_ADDRESS_IPV6,        TR_DEFAULT_BIND_ADDRESS_IPV6 );
     tr_bencDictAddBool( d, TR_PREFS_KEY_START,                    TRUE );
     tr_bencDictAddBool( d, TR_PREFS_KEY_TRASH_ORIGINAL,           FALSE );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_INSTRUMENTATION_ENABLED,  FALSE );
 }
 
 void
@@ -367,6 +369,7 @@ tr_sessionGetSettings( tr_session * s, struct tr_benc * d )
     tr_bencDictAddStr ( d, TR_PREFS_KEY_BIND_ADDRESS_IPV6,        tr_ntop_non_ts( &s->public_ipv6->addr ) );
     tr_bencDictAddBool( d, TR_PREFS_KEY_START,                    !tr_sessionGetPaused( s ) );
     tr_bencDictAddBool( d, TR_PREFS_KEY_TRASH_ORIGINAL,           tr_sessionGetDeleteSource( s ) );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_INSTRUMENTATION_ENABLED,  s->isInstruEnabled );
 }
 
 tr_bool
@@ -626,6 +629,8 @@ tr_sessionInitImpl( void * vdata )
     tr_webInit( session );
 
     tr_sessionSet( session, &settings );
+    
+    tr_instruInit( session );
 
     if( session->isDHTEnabled )
     {
@@ -814,6 +819,12 @@ sessionSetImpl( void * vdata )
         tr_sessionSetTorrentDoneScriptEnabled( session, boolVal );
     if( tr_bencDictFindStr( settings, TR_PREFS_KEY_SCRIPT_TORRENT_DONE_FILENAME, &str ) )
         tr_sessionSetTorrentDoneScript( session, str );
+    
+    /**
+    ***  Instrumentation
+    **/
+    if( tr_bencDictFindBool( settings, TR_PREFS_KEY_INSTRUMENTATION_ENABLED, &boolVal ) )
+        session->isInstruEnabled = boolVal;
 
     data->done = TRUE;
 }
@@ -855,6 +866,8 @@ tr_sessionGetDownloadDir( const tr_session * session )
 
     return session->downloadDir;
 }
+
+
 
 /***
 ****
