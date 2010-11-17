@@ -55,5 +55,16 @@ void tr_instruMsg( struct tr_session * session, const char * fmt, ... );
 
 
 
+/****************  Utils  *************/
+
+
+/*
+ * Returns a date string formated with :
+ * month-day_hour:min:secs
+ */
+char* tr_getDateStr( char * buf, int buflen );
+
+
+
 #endif /* TR_INSTRUMENTATION_H */
 

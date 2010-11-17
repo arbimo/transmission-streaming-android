@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "event.h"
 #include "instrumentation.h"
@@ -32,7 +33,21 @@
 #include "transmission.h"
 #include "utils.h"
 
+char*
+tr_getDateStr( char * buf, int buflen )
+{
+    struct tm      now_tm;
+    struct timeval tv;
+    time_t         seconds;
 
+    gettimeofday( &tv, NULL );
+
+    seconds = tv.tv_sec;
+    tr_localtime_r( &seconds, &now_tm );
+    strftime( buf, buflen, "%m-%d_%H:%M:%S", &now_tm );
+
+    return buf;
+}
 
 
 void
@@ -44,16 +59,28 @@ tr_instruInit( tr_session * session )
     {
         /* building file name */
         const char * configDir;
-        char  timeStr[30];
+        char instruDir[256];
+        char  dateStr[64];
         char * logfile;
+        struct stat sb;
         
         configDir = tr_sessionGetConfigDir( session );
-        tr_getLogTimeStr( timeStr, 29 );
-        logfile = tr_malloc( strlen(configDir) + 35 );
-        strcpy( logfile, configDir );
-        if( logfile[strlen(logfile) - 1] != '/')
-            strcat(logfile, "/");
-        strcat( logfile, timeStr );
+        strcpy( instruDir, configDir );
+        if( instruDir[strlen(instruDir) - 1] != '/' )
+            strcat( instruDir, "/" );
+
+        strcat(instruDir, "instrumentation/");
+
+        if( stat( instruDir, &sb ) )
+        {
+            /* Folder doesn't exist yet, we create it */
+            tr_mkdirp( instruDir, 0777 );
+        }
+
+        tr_getDateStr( dateStr, 64 );
+        logfile = tr_malloc( strlen(instruDir) + 70 );
+        strcpy( logfile, instruDir );
+        strcat( logfile, dateStr );
         strcat( logfile, ".log" );
         
         /* opening log file */
@@ -68,7 +95,7 @@ tr_instruInit( tr_session * session )
         else
         {
             tr_dbg( "Starting instrumentation in file %s", logfile );
-            tr_instruMsg( session, "This is an instrumentation file !!!" );
+            tr_instruMsg( session, "# This is an instrumentation for transmission daemon" );
         }
         tr_free( logfile );
     }
@@ -87,6 +114,7 @@ tr_instruUninit( tr_session * session )
     
     if( session->isInstruEnabled && session->fd_instru != 0 )
     {
+        tr_instruMsg( session, "# ending instrumentation");
         session->isInstruEnabled = FALSE;
         tr_dbg( "Ending instrumentation" );
         tr_close_file( session->fd_instru );
@@ -108,7 +136,6 @@ tr_instruMsg( tr_session * session, const char * fmt, ... )
     if( session->isInstruEnabled )
     {
         va_list           args;
-        char              timestr[64];
         struct evbuffer * buf = evbuffer_new( );
         struct timeval    tv;
         
