@@ -1589,6 +1589,9 @@ sessionCloseImpl( void * vsession )
     if( session->isDHTEnabled )
         tr_dhtUninit( session );
 
+    if( session->isInstruEnabled )
+        tr_instruUninit( session );
+
     evtimer_del( session->saveTimer );
     tr_free( session->saveTimer );
     session->saveTimer = NULL;
