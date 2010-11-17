@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: instrumenation.h 
+ * $Id: instrumentation.h 
  *
  * Copyright (c) 2010 Arthur Bit-Monnot
  *
@@ -25,16 +25,35 @@
 #ifndef TR_INSTRUMENTATION_H
 #define TR_INSTRUMENTATION_H 1
 
+
 struct tr_session;
 
 
+/*
+ * Opens a log file where the instrumentation output will
+ * be writen if isInstruEnabled is set to TRUE.
+ * Does nothing otherwise.
+ * It is attached to a session (passed as argument)
+ */
 void
 tr_instruInit( struct tr_session * session );
 
+
+/* 
+ * Closes the log file attached to the session and
+ * set isInstruEnabled to FALSE.
+ */
 void
 tr_instruUninit( struct tr_session * session );
 
-/* print a message to the log file attached to session */              
+
+/* 
+ * Print a message to the log file attached to session.
+ * This add the current time at the beginning of the line.
+ */
 void tr_instruMsg( struct tr_session * session, const char * fmt, ... );
 
+
+
 #endif /* TR_INSTRUMENTATION_H */
+

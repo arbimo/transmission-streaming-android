@@ -1,5 +1,5 @@
 /******************************************************************************
- * $Id: instrumenation.c 
+ * $Id: instrumentation.c 
  *
  * Copyright (c) 2010 Arthur Bit-Monnot
  *
@@ -34,9 +34,6 @@
 
 
 
-/**
-***    Instrumentation
-**/
 
 void
 tr_instruInit( tr_session * session )
@@ -79,9 +76,9 @@ tr_instruInit( tr_session * session )
     {
         /* Instrumentation is disabled */
         session->fd_instru = 0;
-        tr_inf("No instrumentation");
     }
 }
+
 
 void
 tr_instruUninit( tr_session * session )
@@ -101,10 +98,6 @@ tr_instruUninit( tr_session * session )
     }
 }
 
-
-/**
-***    Instrumentation 
-**/
 
 void
 tr_instruMsg( tr_session * session, const char * fmt, ... )
