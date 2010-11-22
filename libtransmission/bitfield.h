@@ -61,6 +61,14 @@ int          tr_bitfieldIsEmpty( const tr_bitfield* );
 
 size_t       tr_bitfieldCountTrueBits( const tr_bitfield* );
 
+/**
+ * Returns a string representing the bitfield.
+ * For example if the bitfield is "1101011", the
+ * string will be " 0 1 3 5 6"
+ * The string can be pretty long, don't forget to free it !
+ */
+char *       tr_bitfieldToStr( const tr_bitfield* );
+
 tr_bitfield* tr_bitfieldOr( tr_bitfield*, const tr_bitfield* );
 
 /** A stripped-down version of bitfieldHas to be used

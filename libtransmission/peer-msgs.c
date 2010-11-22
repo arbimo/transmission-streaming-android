@@ -25,6 +25,7 @@
 #include "completion.h"
 #include "crypto.h"
 #include "inout.h"
+#include "instrumentation.h"
 #ifdef WIN32
 #include "net.h" /* for ECONN */
 #endif
@@ -1197,8 +1198,8 @@ updatePeerProgress( tr_peermsgs * msgs )
 {
     msgs->peer->progress = tr_bitsetPercent( &msgs->peer->have );
     dbgmsg( msgs, "peer progress is %f", msgs->peer->progress );
-    updateFastSet( msgs );
-    updateInterest( msgs );
+    updateFastSet( msgs );   //does nothing
+    updateInterest( msgs );  //does nothing
     firePeerProgress( msgs );
 }
 
@@ -1421,6 +1422,13 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                 return READ_ERR;
             }
             updatePeerProgress( msgs );
+
+            /* Instrumentation */
+            tr_instruMsg( msgs->torrent->session, "TR %d R H %s i %u",
+                    msgs->torrent->uniqueId,
+                    tr_peerIoGetAddrStr( msgs->peer->io ),
+                    ui32 );
+
             break;
 
         case BT_BITFIELD: {
@@ -1432,6 +1440,17 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             tr_peerIoReadBytes( msgs->peer->io, inbuf,
                                 msgs->peer->have.bitfield.bits, msglen );
             updatePeerProgress( msgs );
+
+            /* Instrumentation */
+            {
+                char * bitfieldStr;
+                bitfieldStr = tr_bitfieldToStr( &msgs->peer->have.bitfield );
+                tr_instruMsg( msgs->torrent->session, "TR %d R BF %s %s",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ),
+                        bitfieldStr );
+                tr_free( bitfieldStr );
+            }
             break;
         }
 
