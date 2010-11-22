@@ -1420,20 +1420,54 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                 fireError( msgs, ERANGE );
                 return READ_ERR;
             }
+            tr_incrReplicationOfPiece( msgs->torrent, ui32 );
             updatePeerProgress( msgs );
             break;
 
         case BT_BITFIELD: {
+
+            tr_bool oldHaveAll, oldHaveNone;
+            tr_bitfield * old = NULL;
+
+
             const size_t bitCount = tr_torrentHasMetadata( msgs->torrent )
                                   ? msgs->torrent->info.pieceCount
                                   : msglen * 8;
             dbgmsg( msgs, "got a bitfield" );
+
+            /* Saving old bitset */
+            oldHaveAll = msgs->peer->have.haveAll;
+            oldHaveNone = msgs->peer->have.haveNone;
+            if( !oldHaveAll && !oldHaveNone )
+                old = tr_bitfieldDup( &msgs->peer->have.bitfield );
+
+
             tr_bitsetReserve( &msgs->peer->have, bitCount );
             tr_peerIoReadBytes( msgs->peer->io, inbuf,
                                 msgs->peer->have.bitfield.bits, msglen );
+
+            if( !oldHaveAll && !msgs->peer->have.haveNone )
+            {
+                if( oldHaveNone )
+                {
+                    tr_incrReplicationFromBitset( msgs->torrent, &msgs->peer->have );
+                }
+                else
+                {
+                    tr_bitfield * diff = tr_bitfieldDup( &msgs->peer->have.bitfield );
+                    tr_bitfieldDifference( diff, old );
+
+                    tr_incrReplicationFromBitfield( msgs->torrent, diff );
+
+                    tr_bitfieldFree( diff );
+                }
+            }
+            if( old != NULL )
+                tr_bitfieldFree( old );
+
             updatePeerProgress( msgs );
             break;
-        }
+            }
 
         case BT_REQUEST:
         {
@@ -1507,6 +1541,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             dbgmsg( msgs, "Got a BT_FEXT_HAVE_ALL" );
             if( fext ) {
                 tr_bitsetSetHaveAll( &msgs->peer->have );
+                tr_incrReplication( msgs->torrent ); //FIXME : diff
                 updatePeerProgress( msgs );
             } else {
                 fireError( msgs, EMSGSIZE );

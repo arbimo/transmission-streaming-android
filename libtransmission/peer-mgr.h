@@ -238,4 +238,49 @@ double tr_peerGetPieceSpeed( const tr_peer    * peer,
 
 /* @} */
 
+/**
+ * Increase the replication count of this piece and sort it if the 
+ * piece list is already sorted
+ */
+void
+tr_incrReplicationOfPiece( tr_torrent * tor, const size_t index );
+
+/**
+ * Increase the replication count of pieces set to 1
+ * If the piece list needs to be resort, it puts the arePiecesSorted 
+ * field to FALSE
+ */
+void
+tr_incrReplicationFromBitset( tr_torrent * tor, const tr_bitset * bitset );
+
+/**
+ * Increases the replication count of pieces set to 1
+ * Puts the arePiecesSorted field to FALSE
+ */
+void
+tr_incrReplicationFromBitfield( tr_torrent * tor, const tr_bitfield * bitfield );
+
+/**
+ * Increase the replication count to every piece
+ */
+void
+tr_incrReplication( tr_torrent * tor );
+
+/**
+ * Decrease the replication count of pieces set to 1
+ * If the piece list needs to be resort, it put the arePiecesSorted 
+ * field to false
+ */
+void
+tr_decrReplicationFromBitset( tr_torrent * tor, const tr_bitset * bitset );
+
+/**
+ * Return TRUE if the piece list is sorted, FALSE otherwise
+ */
+tr_bool
+tr_arePiecesSorted( const tr_torrent * tor );
+
+void
+tr_setPiecesSorted( tr_torrent * tor, tr_bool areSorted );
+
 #endif
