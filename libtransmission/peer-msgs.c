@@ -344,6 +344,15 @@ protocolSendRequest( tr_peermsgs               * msgs,
     tr_peerIoWriteUint32( io, out, req->length );
 
     dbgmsg( msgs, "requesting %u:%u->%u...", req->index, req->offset, req->length );
+
+    /* Instrumentation */
+    tr_instruMsg( msgs->torrent->session, "TR %d R %s i %u b %u l %u",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ),
+            req->index,
+            req->offset,
+            req->length );
+
     dbgOutMessageLen( msgs );
     pokeBatchPeriod( msgs, IMMEDIATE_PRIORITY_INTERVAL_SECS );
 }
@@ -1527,6 +1536,12 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             if( fext ) {
                 tr_bitsetSetHaveAll( &msgs->peer->have );
                 updatePeerProgress( msgs );
+
+                /* Instrumentation */
+                tr_instruMsg( msgs->torrent->session, "TR %d R FEXT %s HAVEALL",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
+
             } else {
                 fireError( msgs, EMSGSIZE );
                 return READ_ERR;
@@ -1538,6 +1553,11 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             if( fext ) {
                 tr_bitsetSetHaveNone( &msgs->peer->have );
                 updatePeerProgress( msgs );
+
+                /* Instrumentation */
+                tr_instruMsg( msgs->torrent->session, "TR %d R FEXT %s HAVENONE",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
             } else {
                 fireError( msgs, EMSGSIZE );
                 return READ_ERR;
