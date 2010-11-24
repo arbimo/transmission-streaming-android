@@ -185,6 +185,20 @@ tr_bitfieldDifference( tr_bitfield * a, const tr_bitfield * b )
         *ait++ &= ~( *bit++ );
 }
 
+void
+tr_bitfieldInverse( tr_bitfield * b )
+{
+    uint8_t * pbyte = b->bits;
+    const uint8_t * byteend = pbyte + b->byteCount;
+
+    while( pbyte != byteend )
+    {
+        *pbyte = ~(*pbyte);
+        pbyte++;
+    }
+}
+
+
 size_t
 tr_bitfieldCountTrueBits( const tr_bitfield* b )
 {

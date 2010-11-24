@@ -1540,8 +1540,22 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
         case BT_FEXT_HAVE_ALL:
             dbgmsg( msgs, "Got a BT_FEXT_HAVE_ALL" );
             if( fext ) {
+                tr_bool oldHaveAll = msgs->peer->have.haveAll;
+                tr_bool oldHaveNone = msgs->peer->have.haveNone;   
+                tr_bitfield * bf =tr_bitfieldDup( &msgs->peer->have.bitfield );
+
                 tr_bitsetSetHaveAll( &msgs->peer->have );
-                tr_incrReplication( msgs->torrent ); //FIXME : diff
+
+                if( oldHaveNone )
+                    tr_incrReplication( msgs->torrent );
+                else if( !oldHaveAll )
+                {
+                   // tr_bitfieldInverse( bf );
+                    tr_incrReplicationFromBitfield( msgs->torrent, bf );
+                    tr_bitfieldFree( bf );
+                }
+
+
                 updatePeerProgress( msgs );
             } else {
                 fireError( msgs, EMSGSIZE );

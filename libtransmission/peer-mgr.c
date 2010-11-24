@@ -360,6 +360,9 @@ peerConstructor( struct peer_atom * atom )
 
     tr_bitsetConstructor( &peer->have, 0 );
 
+    /* as long as we know the peer doesn't have any piece */
+    tr_bitsetSetHaveNone( &peer->have );
+
     peer->atom = atom;
     atom->peer = peer;
 
@@ -3625,6 +3628,8 @@ void
 tr_incrReplicationFromBitfield( tr_torrent * tor, const tr_bitfield * bitfield )
 {
     size_t it;
+
+    assert( bitfield->bitCount == tor->info.pieceCount );
 
     tr_bitfieldTestFast( bitfield, tor->info.pieceCount - 1 );
     for( it=0 ; it < tor->info.pieceCount ; it++ )
