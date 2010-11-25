@@ -1550,7 +1550,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                     tr_incrReplication( msgs->torrent );
                 else if( !oldHaveAll )
                 {
-                   // tr_bitfieldInverse( bf );
+                    tr_bitfieldInverse( bf );
                     tr_incrReplicationFromBitfield( msgs->torrent, bf );
                     tr_bitfieldFree( bf );
                 }
