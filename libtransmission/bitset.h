@@ -33,6 +33,8 @@ static inline void
 tr_bitsetConstructor( tr_bitset * b, size_t size )
 {
     tr_bitfieldConstruct( &b->bitfield, size );
+    b->haveAll = FALSE;
+    b->haveNone = FALSE;
 }
 
 static inline void
@@ -53,6 +55,9 @@ tr_bitsetReserve( tr_bitset * b, size_t size )
 
         if( ( tmp->bits != NULL ) && ( tmp->byteCount > 0 ) )
             memcpy( b->bitfield.bits, tmp->bits, tmp->byteCount );
+
+        b->haveAll = FALSE;
+        b->haveNone = FALSE;
 
         tr_bitfieldFree( tmp );
     }
