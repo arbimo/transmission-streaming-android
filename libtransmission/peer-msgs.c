@@ -346,7 +346,7 @@ protocolSendRequest( tr_peermsgs               * msgs,
     dbgmsg( msgs, "requesting %u:%u->%u...", req->index, req->offset, req->length );
 
     /* Instrumentation */
-    tr_instruMsg( msgs->torrent->session, "TR %d R %s i %u b %u l %u",
+    tr_instruMsg( msgs->torrent->session, "TR %d S R %s i %u b %u l %u",
             msgs->torrent->uniqueId,
             tr_peerIoGetAddrStr( msgs->peer->io ),
             req->index,
