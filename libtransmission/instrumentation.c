@@ -44,7 +44,7 @@ tr_getDateStr( char * buf, int buflen )
 
     seconds = tv.tv_sec;
     tr_localtime_r( &seconds, &now_tm );
-    strftime( buf, buflen, "%m-%d_%H:%M:%S", &now_tm );
+    strftime( buf, buflen, "%m-%d_%H-%M-%S", &now_tm );
 
     return buf;
 }
@@ -90,7 +90,8 @@ tr_instruInit( tr_session * session )
             /* Can't open file, disabling instrumentation */
             session->fd_instru = 0;
             session->isInstruEnabled = FALSE;
-            tr_err( "Cannot open instrumentation file, turning instrumentation off" );
+            tr_err( "Cannot open instrumentation file, turning instrumentation off - Error : %s"
+                    , strerror(errno) );
         }
         else
         {
