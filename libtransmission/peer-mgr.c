@@ -471,6 +471,7 @@ torrentDestructor( void * vt )
     tr_free( t->pieceReplication );
     tr_free( t->requests );
     tr_free( t->pieces );
+    tr_free( t->piecesInOrder );
     tr_free( t );
 }
 
@@ -1075,7 +1076,7 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
         if( t->pieceCountInOrder == 0 )
         {
             tr_free( t->piecesInOrder );
-            t->pieces = NULL;
+            t->piecesInOrder = NULL;
         }
     }
 }
@@ -1162,11 +1163,11 @@ pieceListInOrderResortPiece( Torrent * t, struct weighted_piece * p )
                              sizeof( struct weighted_piece ),
                              comparePieceByOrder, &exact );
 
-        memmove( &t->pieces[pos + 1],
-                 &t->pieces[pos],
+        memmove( &t->piecesInOrder[pos + 1],
+                 &t->piecesInOrder[pos],
                  sizeof( struct weighted_piece ) * ( t->pieceCount++ - pos ) );
 
-        t->pieces[pos] = tmp;
+        t->piecesInOrder[pos] = tmp;
     }
 
     assertWeightedPiecesAreSorted( t );
