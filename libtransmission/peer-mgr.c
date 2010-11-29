@@ -867,7 +867,8 @@ pieceListSort( Torrent * t, int mode )
     qsort( t->pieces, t->pieceCount,
            sizeof( struct weighted_piece ), compar );
 
-    tr_setPiecesSorted( t->tor, TRUE );
+    if( mode == PIECES_SORTED_BY_WEIGHT )
+        tr_setPiecesSorted( t->tor, TRUE );
 }
 
 static tr_bool
@@ -923,9 +924,6 @@ pieceListLookup( Torrent * t, tr_piece_index_t index )
 static void
 pieceListRebuild( Torrent * t )
 {
-    if( !tr_arePiecesSorted( t->tor ) )
-        pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
-    assertWeightedPiecesAreSorted( t );
 
     if( !tr_torrentIsSeed( t->tor ) )
     {
@@ -990,10 +988,6 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
 {
     struct weighted_piece * p;
 
-    if( !tr_arePiecesSorted( t->tor ) )
-        pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
-    assertWeightedPiecesAreSorted( t );
-
     if(( p = pieceListLookup( t, piece )))
     {
         const int pos = p - t->pieces;
@@ -1009,8 +1003,6 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
             t->pieces = NULL;
         }
     }
-
-    assertWeightedPiecesAreSorted( t );
 }
 
 static void
@@ -1067,17 +1059,11 @@ pieceListRemoveRequest( Torrent * t, tr_block_index_t block )
     struct weighted_piece * p;
     const tr_piece_index_t index = tr_torBlockPiece( t->tor, block );
 
-    if( !tr_arePiecesSorted( t->tor ) )
-        pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
-    assertWeightedPiecesAreSorted( t );
-
     if( ((p = pieceListLookup( t, index ))) && ( p->requestCount > 0 ) )
     {
         --p->requestCount;
         pieceListResortPiece( t, p );
     }
-
-    assertWeightedPiecesAreSorted( t );
 }
 
 /**
@@ -1115,13 +1101,14 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     /* walk through the pieces and find blocks that should be requested */
     got = 0;
     t = tor->torrentPeers;
-    if( !tr_arePiecesSorted( t->tor ) )
-        pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
-    assertWeightedPiecesAreSorted( t );
 
     /* prep the pieces list */
     if( t->pieces == NULL )
         pieceListRebuild( t );
+
+    if( !tr_arePiecesSorted( t->tor ) )
+        pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
+    assertWeightedPiecesAreSorted( t );
 
     endgame = isInEndgame( t );
 
