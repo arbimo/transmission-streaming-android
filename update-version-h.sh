@@ -23,7 +23,8 @@ if [ -d ".svn" ] && type svnversion >/dev/null 2>&1; then
     svn_revision=`svnversion -n . | cut -d: -f1 | cut -dM -f1 | cut -dS -f1`
 else
     # Give up and check the source files
-    svn_revision=`awk '/\\$Id: /{ if ($4>i) i=$4 } END {print i}' */*.cc */*.[chm] */*.po`
+    # svn_revision=`awk '/\\$Id: /{ if ($4>i) i=$4 } END {print i}' */*.cc */*.[chm] */*.po`
+    svn_revision='11151'
 fi
 
 cat > libtransmission/version.h.new << EOF
