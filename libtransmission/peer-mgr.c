@@ -209,6 +209,7 @@ typedef struct tr_torrent_peers
 }
 Torrent;
 
+
 struct tr_peerMgr
 {
     tr_session    * session;
@@ -951,6 +952,10 @@ assertWeightedPiecesAreSorted( Torrent * t )
 #define assertWeightedPiecesAreSorted(t)
 #endif
 
+void
+assertWeightedListsAreConsistent( tr_torrent * tor );
+
+
 static struct weighted_piece *
 pieceListLookup( Torrent * t, tr_piece_index_t index )
 {
@@ -973,6 +978,38 @@ pieceListInOrderLookup( Torrent * t, tr_piece_index_t index )
             return &t->piecesInOrder[i];
 
     return NULL;
+}
+
+void
+assertWeightedListsAreConsistent( tr_torrent * tor )
+{
+    struct weighted_piece * reg;
+    struct weighted_piece * ord;
+    tr_piece_index_t i;
+    Torrent * t = tor->torrentPeers;
+
+    assert( t->pieceCount == t->pieceCountInOrder );
+
+    for( i=0 ; i<t->tor->info.pieceCount ; i++ )
+    {
+        reg = pieceListLookup( t, i );
+        ord = pieceListInOrderLookup( t, i );
+        if( reg == NULL )
+            assert( ord == NULL );
+        else if( ord == NULL )
+            assert( reg == NULL );
+        else
+        {
+            assert( reg ->index == ord->index );
+            assert( ord->requestCount == reg->requestCount );
+            assert( ord->salt == reg->salt );
+        }
+
+
+    }
+
+
+
 }
 
 static void
@@ -1037,6 +1074,8 @@ pieceListRebuild( Torrent * t )
         pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
         pieceListInOrderSort( t );
 
+        assertWeightedListsAreConsistent( t->tor );
+
         /* cleanup */
         tr_free( pool );
     }
@@ -1047,8 +1086,7 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
 {
     struct weighted_piece * p;
 
-    assert( t->pieceCountInOrder == t->pieceCount );
-
+    assertWeightedListsAreConsistent( t->tor );
     if(( p = pieceListLookup( t, piece )))
     {
         const int pos = p - t->pieces;
@@ -1079,6 +1117,8 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
             t->piecesInOrder = NULL;
         }
     }
+
+    assertWeightedListsAreConsistent( t->tor );
 }
 
 static void
@@ -1140,11 +1180,10 @@ pieceListInOrderResortPiece( Torrent * t, struct weighted_piece * p )
 
     /* is the torrent already sorted? */
     pos = p - t->piecesInOrder;
-    fprintf(stderr, "Pos : %d -- SizeOf : %u\n", pos, sizeof(struct weighted_piece));
     weightTorrent = t->tor;
     if( isSorted && ( pos > 0 ) && ( comparePieceByOrder( p-1, p ) > 0 ) )
         isSorted = FALSE;
-    if( isSorted && ( pos < t->pieceCount - 1 ) && ( comparePieceByOrder( p, p+1 ) > 0 ) )
+    if( isSorted && ( pos < t->pieceCountInOrder - 1 ) && ( comparePieceByOrder( p, p+1 ) > 0 ) )
         isSorted = FALSE;
 
 
@@ -1165,12 +1204,11 @@ pieceListInOrderResortPiece( Torrent * t, struct weighted_piece * p )
 
         memmove( &t->piecesInOrder[pos + 1],
                  &t->piecesInOrder[pos],
-                 sizeof( struct weighted_piece ) * ( t->pieceCount++ - pos ) );
+                 sizeof( struct weighted_piece ) * ( t->pieceCountInOrder++ - pos ) );
 
         t->piecesInOrder[pos] = tmp;
     }
 
-    assertWeightedPiecesAreSorted( t );
 }
 
 static void
@@ -1178,6 +1216,7 @@ pieceListRemoveRequest( Torrent * t, tr_block_index_t block )
 {
     struct weighted_piece * p;
     const tr_piece_index_t index = tr_torBlockPiece( t->tor, block );
+    assertWeightedListsAreConsistent( t->tor );
 
     if( ((p = pieceListLookup( t, index ))) && ( p->requestCount > 0 ) )
     {
@@ -1188,6 +1227,7 @@ pieceListRemoveRequest( Torrent * t, tr_block_index_t block )
         --p->requestCount;
         pieceListInOrderResortPiece( t, p );
     }
+    assertWeightedListsAreConsistent( t->tor );
 }
 
 /**
@@ -1235,7 +1275,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
         pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
     assertWeightedPiecesAreSorted( t );
 
-    assert( t->pieceCount == t->pieceCountInOrder );
+    assertWeightedListsAreConsistent( t->tor );
 
     endgame = isInEndgame( t );
     getInOrder = TRUE;
@@ -1292,7 +1332,6 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     {
         struct weighted_piece * tmp;
         int it;
-        int pos;
         tr_bool exact;
 
         weightTorrent = t->tor;
@@ -1302,22 +1341,35 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
         tmp = (struct weighted_piece *) tr_new( struct weighted_piece, i+1 );
 
+        /* remove each modified piece to have a clean list */
         for( it=0 ; it<=i ; it++ )
         {
+            const struct weighted_piece * p1 = pieceListLookup (t, pieces[it].index );
+            const struct weighted_piece * p2 = pieceListInOrderLookup (t, pieces[it].index );
+
+            /* relative position of the piece in the regular/inOrder list */
+            const int posReg = p1 - t->pieces;
+            const int posOrd = p2 - t->piecesInOrder;
+
             tmp[it] = pieces[it];
+
             tr_removeElementFromArray( t->pieces,
-                    pieceListLookup( t, tmp[it].index ) - t->pieces,
+                    posReg, 
                     sizeof( struct weighted_piece ),
                     t->pieceCount--);
+
             tr_removeElementFromArray( t->piecesInOrder,
-                    pieceListInOrderLookup( t, tmp[it].index ) - t->piecesInOrder,
+                    posOrd,
                     sizeof( struct weighted_piece ),
                     t->pieceCountInOrder--);
         }
 
+        /* reinsert the pieces removed */
         for( it=0 ; it<=i ; it++ )
         {
+            int pos;
             
+            /* regular list */
             pos = tr_lowerBound( &tmp[it], t->pieces, t->pieceCount,
                     sizeof( struct weighted_piece ),
                     comparePieceByWeight, &exact );
@@ -1328,7 +1380,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
             t->pieces[pos] = tmp[it];
 
-
+            /* inOrder List */
             pos = tr_lowerBound( &tmp[it], t->piecesInOrder, t->pieceCountInOrder,
                     sizeof( struct weighted_piece ),
                     comparePieceByOrder, &exact );
@@ -1339,9 +1391,11 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
             t->piecesInOrder[pos] = tmp[it];
         }
+        tr_free( tmp );
 
     }
 
+    assertWeightedListsAreConsistent( t->tor );
     assertWeightedPiecesAreSorted( t );
     *numgot = got;
 }
