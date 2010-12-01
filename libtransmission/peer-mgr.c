@@ -1331,7 +1331,8 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     if( got > 0 )
     {
         struct weighted_piece * tmp;
-        int it;
+        int it, nbPiecesRequested;
+        tr_piece_index_t lastindex;
         tr_bool exact;
 
         weightTorrent = t->tor;
@@ -1341,17 +1342,38 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
         tmp = (struct weighted_piece *) tr_new( struct weighted_piece, i+1 );
 
-        /* remove each modified piece to have a clean list */
-        for( it=0 ; it<=i ; it++ )
+        fprintf( stderr, "Pieces to request : " );
+        
+        nbPiecesRequested = 0;
+        for( it=0 ; it<got ; it++ )
         {
-            const struct weighted_piece * p1 = pieceListLookup (t, pieces[it].index );
-            const struct weighted_piece * p2 = pieceListInOrderLookup (t, pieces[it].index );
+            if( lastindex != tr_torBlockPiece( t->tor, setme[it] ) )
+            {
+                lastindex = tr_torBlockPiece( t->tor, setme[it] );
+                fprintf( stderr, " %u", lastindex );
+                tmp[nbPiecesRequested] = * pieceListLookup( t, lastindex );
+                nbPiecesRequested++;
+            }
+        }
+
+        fprintf( stderr, "\n" );
+
+        /* remove each modified piece to have a clean list */
+        fprintf( stderr, "Begin Loop : i = %d\n", i );
+        //for( it=0 ; it<i ; it++ )
+        //    tmp[it] = pieces[it];
+
+        for( it=0 ; it<nbPiecesRequested ; it++ )
+        {
+            const struct weighted_piece * p1 = pieceListLookup (t, tmp[it].index );
+            const struct weighted_piece * p2 = pieceListInOrderLookup (t, tmp[it].index );
 
             /* relative position of the piece in the regular/inOrder list */
             const int posReg = p1 - t->pieces;
             const int posOrd = p2 - t->piecesInOrder;
 
-            tmp[it] = pieces[it];
+            fprintf( stderr, "Reg (%d) : %#x %#x %u ( %d )\n", it, p1, t->pieces, posReg, t->pieceCount );
+            fprintf( stderr, "Ord (%d) : %#x %#x %u ( %d )\n", it, p2, t->piecesInOrder, posOrd, t->pieceCountInOrder );
 
             tr_removeElementFromArray( t->pieces,
                     posReg, 
@@ -1365,7 +1387,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
         }
 
         /* reinsert the pieces removed */
-        for( it=0 ; it<=i ; it++ )
+        for( it=0 ; it<nbPiecesRequested ; it++ )
         {
             int pos;
             
