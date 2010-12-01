@@ -1440,6 +1440,12 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
             requestListRemove( t, block, peer );
             pieceListRemoveRequest( t, block );
 
+            tr_instruMsg( t->tor->session, "TR %d P %s i %u b %u",
+                    t->tor->uniqueId,
+                    tr_peerIoGetAddrStr( peer->io ),
+                    tr_torBlockPiece( t->tor, block ),
+                    e->offset );
+
             if( peer != NULL )
                 tr_historyAdd( peer->blocksSentToClient, tr_date( ), 1 );
 
