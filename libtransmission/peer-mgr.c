@@ -893,7 +893,7 @@ isInEndgame( Torrent * t )
  * but is too expensive even for nightly builds...
  * let's leave it disabled but add an easy hook to compile it back in
  */
-#if 0
+#if 1
 static void
 assertWeightedPiecesAreSorted( Torrent * t )
 {
@@ -907,6 +907,36 @@ assertWeightedPiecesAreSorted( Torrent * t )
 }
 #else
 #define assertWeightedPiecesAreSorted(t)
+#endif
+
+#if 1
+static void
+assertReplicationCountIsExact( Torrent * t )
+{
+    const int pieceCount = t->tor->info.pieceCount;
+    const int peerCount = tr_ptrArraySize( &t->peers );
+    uint32_t * replicationCount = tr_new( uint32_t, pieceCount );
+    int itPiece, itPeer; /* iterators */
+    tr_peer * peer;
+
+    for( itPiece=0 ; itPiece<pieceCount ; ++itPiece )
+    {
+        replicationCount[itPiece] = 0;
+
+        for( itPeer=0 ; itPeer<peerCount ; ++itPeer )
+        {
+            peer = tr_ptrArrayNth( &t->peers, itPeer );
+            if( tr_bitsetHasFast( &peer->have , (size_t) itPiece ) )
+                ++replicationCount[itPiece];
+        }
+
+        assert( t->pieceReplication[itPiece] == replicationCount[itPiece] );
+
+    }
+
+}
+#else
+#define assertReplicationCountIsExact(t)
 #endif
 
 static struct weighted_piece *
@@ -1109,6 +1139,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     if( !tr_arePiecesSorted( t->tor ) )
         pieceListSort( t, PIECES_SORTED_BY_WEIGHT );
     assertWeightedPiecesAreSorted( t );
+    assertReplicationCountIsExact( t );
 
     endgame = isInEndgame( t );
 
