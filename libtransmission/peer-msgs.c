@@ -1079,6 +1079,11 @@ parseUtPex( tr_peermsgs * msgs, int msglen, struct evbuffer * inbuf )
                 int seedProbability = -1;
                 if( i < added_f_len ) seedProbability = ( added_f[i] & ADDED_F_SEED_FLAG ) ? 100 : 0;
                 tr_peerMgrAddPex( tor, TR_PEER_FROM_PEX, pex+i, seedProbability );
+
+                tr_instruMsg( tor->session, "TR %d R PEX %s %d",
+                        tor->uniqueId,
+                        tr_peerIoAddrStr( &(pex+i)->addr, (pex+i)->port ),
+                        seedProbability );
             }
 
             tr_free( pex );
@@ -1100,6 +1105,11 @@ parseUtPex( tr_peermsgs * msgs, int msglen, struct evbuffer * inbuf )
                 int seedProbability = -1;
                 if( i < added_f_len ) seedProbability = ( added_f[i] & ADDED_F_SEED_FLAG ) ? 100 : 0;
                 tr_peerMgrAddPex( tor, TR_PEER_FROM_PEX, pex+i, seedProbability );
+
+                tr_instruMsg( tor->session, "TR %d R PEX %s %d",
+                        tor->uniqueId,
+                        tr_peerIoAddrStr( &(pex+i)->addr, (pex+i)->port ),
+                        seedProbability );
             }
 
             tr_free( pex );
