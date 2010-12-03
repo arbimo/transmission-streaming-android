@@ -609,7 +609,15 @@ atomSetSeedProbability( struct peer_atom * atom, int seedProbability )
     atom->seedProbability = seedProbability;
 
     if( seedProbability == 100 )
+    {
         atom->flags |= ADDED_F_SEED_FLAG;
+
+        /* check if the  peer really has all the pieces. 
+         * This could be a weakness of the BT protocol if an attacker/peer 
+         * send false PEX messages */
+        if( atom->peer != NULL && tr_bitsetPercent( &atom->peer->have ) >= 1.0 )
+            tr_bitsetSetHaveAll( &atom->peer->have );
+    }
     else if( seedProbability != -1 )
         atom->flags &= ~ADDED_F_SEED_FLAG;
 }
