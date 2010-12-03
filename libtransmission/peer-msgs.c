@@ -1415,12 +1415,21 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                 fireError( msgs, ERANGE );
                 return READ_ERR;
             }
-            if( tr_bitsetAdd( &msgs->peer->have, ui32 ) )
+
+            /* a peer can send the same HAVE message twice */
+            if( !tr_bitsetHas( &msgs->peer->have, ui32 ) )
             {
-                fireError( msgs, ERANGE );
-                return READ_ERR;
+                if( tr_bitsetAdd( &msgs->peer->have, ui32 ) )
+                {
+                    fireError( msgs, ERANGE );
+                    return READ_ERR;
+                }
+                else
+                {
+                    tr_incrReplicationOfPiece( msgs->torrent, ui32 );
+                }
+
             }
-            tr_incrReplicationOfPiece( msgs->torrent, ui32 );
             updatePeerProgress( msgs );
             break;
 
