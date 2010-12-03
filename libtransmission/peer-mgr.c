@@ -2127,7 +2127,7 @@ tr_peerMgrStartTorrent( tr_torrent * tor )
     managerLock( t->manager );
     ensureMgrTimersExist( t->manager );
     memset( t->pieceReplication, 0, sizeof( uint32_t ) * t->tor->info.pieceCount );
-    tr_setPiecesSorted( t->tor, TRUE );
+    tr_setPiecesSorted( t->tor, FALSE );
 
     t->isRunning = TRUE;
 
@@ -2144,7 +2144,7 @@ stopTorrent( Torrent * t )
 
     t->isRunning = FALSE;
     memset( t->pieceReplication, 0, sizeof( uint32_t ) * t->tor->info.pieceCount );
-    tr_setPiecesSorted( t->tor, TRUE );
+    tr_setPiecesSorted( t->tor, FALSE );
 
     /* disconnect the peers. */
     for( i=0, n=tr_ptrArraySize( &t->peers ); i<n; ++i )
