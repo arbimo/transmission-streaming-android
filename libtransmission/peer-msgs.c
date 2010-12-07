@@ -1438,7 +1438,6 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             tr_bool oldHaveAll, oldHaveNone;
             tr_bitfield * old = NULL;
 
-
             const size_t bitCount = tr_torrentHasMetadata( msgs->torrent )
                                   ? msgs->torrent->info.pieceCount
                                   : msglen * 8;
@@ -1455,6 +1454,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             tr_peerIoReadBytes( msgs->peer->io, inbuf,
                                 msgs->peer->have.bitfield.bits, msglen );
 
+            /* increase the replication count of pieces only present in the new bitset */
             if( !oldHaveAll && !msgs->peer->have.haveNone )
             {
                 if( oldHaveNone )
@@ -1550,8 +1550,11 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             dbgmsg( msgs, "Got a BT_FEXT_HAVE_ALL" );
             if( fext ) {
                 tr_bool oldHaveAll = msgs->peer->have.haveAll;
-                tr_bool oldHaveNone = msgs->peer->have.haveNone;   
-                tr_bitfield * bf =tr_bitfieldDup( &msgs->peer->have.bitfield );
+                tr_bool oldHaveNone = msgs->peer->have.haveNone;
+                tr_bitfield * bf = NULL;
+
+                if( !oldHaveAll && !oldHaveNone )
+                    bf = tr_bitfieldDup( &msgs->peer->have.bitfield );
 
                 tr_bitsetSetHaveAll( &msgs->peer->have );
 
