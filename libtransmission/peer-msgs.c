@@ -1437,6 +1437,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
 
             tr_bool oldHaveAll, oldHaveNone;
             tr_bitfield * old = NULL;
+            tr_bitset * bitset = &msgs->peer->have;
 
             const size_t bitCount = tr_torrentHasMetadata( msgs->torrent )
                                   ? msgs->torrent->info.pieceCount
@@ -1444,26 +1445,30 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             dbgmsg( msgs, "got a bitfield" );
 
             /* Saving old bitset */
-            oldHaveAll = msgs->peer->have.haveAll;
-            oldHaveNone = msgs->peer->have.haveNone;
+            oldHaveAll = bitset->haveAll;
+            oldHaveNone = bitset->haveNone;
             if( !oldHaveAll && !oldHaveNone )
-                old = tr_bitfieldDup( &msgs->peer->have.bitfield );
+                old = tr_bitfieldDup( &bitset->bitfield );
 
 
-            tr_bitsetReserve( &msgs->peer->have, bitCount );
+            tr_bitsetReserve( bitset, bitCount );
             tr_peerIoReadBytes( msgs->peer->io, inbuf,
-                                msgs->peer->have.bitfield.bits, msglen );
+                                bitset->bitfield.bits, msglen );
+
+            bitset->haveAll = 0;
+            bitset->haveNone = 0;
+
 
             /* increase the replication count of pieces only present in the new bitset */
-            if( !oldHaveAll && !msgs->peer->have.haveNone )
+            if( !oldHaveAll )
             {
                 if( oldHaveNone )
                 {
-                    tr_incrReplicationFromBitset( msgs->torrent, &msgs->peer->have );
+                    tr_incrReplicationFromBitset( msgs->torrent, bitset );
                 }
                 else
                 {
-                    tr_bitfield * diff = tr_bitfieldDup( &msgs->peer->have.bitfield );
+                    tr_bitfield * diff = tr_bitfieldDup( &bitset->bitfield );
                     tr_bitfieldDifference( diff, old );
 
                     tr_incrReplicationFromBitfield( msgs->torrent, diff );

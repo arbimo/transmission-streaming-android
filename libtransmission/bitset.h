@@ -56,9 +56,6 @@ tr_bitsetReserve( tr_bitset * b, size_t size )
         if( ( tmp->bits != NULL ) && ( tmp->byteCount > 0 ) )
             memcpy( b->bitfield.bits, tmp->bits, tmp->byteCount );
 
-        b->haveAll = 0;
-        b->haveNone = 0;
-
         tr_bitfieldFree( tmp );
     }
 }
