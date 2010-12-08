@@ -944,7 +944,7 @@ isInEndgame( Torrent * t )
  * but is too expensive even for nightly builds...
  * let's leave it disabled but add an easy hook to compile it back in
  */
-#if 1
+#if 0
 static void
 assertWeightedPiecesAreSorted( Torrent * t )
 {
@@ -959,11 +959,12 @@ assertWeightedPiecesAreSorted( Torrent * t )
 #else
 #define assertWeightedPiecesAreSorted(t)
 #endif
-
+#if 0
 void
 assertWeightedListsAreConsistent( tr_torrent * tor );
+#endif
 
-#if 1
+#if 0
 static void
 assertReplicationCountIsExact( Torrent * t )
 {
@@ -1018,6 +1019,7 @@ pieceListInOrderLookup( Torrent * t, tr_piece_index_t index )
     return NULL;
 }
 
+#if 0
 void
 assertWeightedListsAreConsistent( tr_torrent * tor )
 {
@@ -1042,13 +1044,12 @@ assertWeightedListsAreConsistent( tr_torrent * tor )
             assert( ord->requestCount == reg->requestCount );
             assert( ord->salt == reg->salt );
         }
-
-
     }
 
-
-
 }
+#else
+#define assertWeightedListsAreConsistent( x )
+#endif
 
 static void
 pieceListRebuild( Torrent * t )
