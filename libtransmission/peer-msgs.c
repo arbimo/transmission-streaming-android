@@ -1415,12 +1415,21 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                 fireError( msgs, ERANGE );
                 return READ_ERR;
             }
-            if( tr_bitsetAdd( &msgs->peer->have, ui32 ) )
+
+            /* a peer can send the same HAVE message twice */
+            if( !tr_bitsetHas( &msgs->peer->have, ui32 ) )
             {
-                fireError( msgs, ERANGE );
-                return READ_ERR;
+                if( tr_bitsetAdd( &msgs->peer->have, ui32 ) )
+                {
+                    fireError( msgs, ERANGE );
+                    return READ_ERR;
+                }
+                else
+                {
+                    tr_incrReplicationOfPiece( msgs->torrent, ui32 );
+                }
+
             }
-            tr_incrReplicationOfPiece( msgs->torrent, ui32 );
             updatePeerProgress( msgs );
             break;
 
@@ -1428,7 +1437,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
 
             tr_bool oldHaveAll, oldHaveNone;
             tr_bitfield * old = NULL;
-
+            tr_bitset * bitset = &msgs->peer->have;
 
             const size_t bitCount = tr_torrentHasMetadata( msgs->torrent )
                                   ? msgs->torrent->info.pieceCount
@@ -1436,25 +1445,30 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             dbgmsg( msgs, "got a bitfield" );
 
             /* Saving old bitset */
-            oldHaveAll = msgs->peer->have.haveAll;
-            oldHaveNone = msgs->peer->have.haveNone;
+            oldHaveAll = bitset->haveAll;
+            oldHaveNone = bitset->haveNone;
             if( !oldHaveAll && !oldHaveNone )
-                old = tr_bitfieldDup( &msgs->peer->have.bitfield );
+                old = tr_bitfieldDup( &bitset->bitfield );
 
 
-            tr_bitsetReserve( &msgs->peer->have, bitCount );
+            tr_bitsetReserve( bitset, bitCount );
             tr_peerIoReadBytes( msgs->peer->io, inbuf,
-                                msgs->peer->have.bitfield.bits, msglen );
+                                bitset->bitfield.bits, msglen );
 
-            if( !oldHaveAll && !msgs->peer->have.haveNone )
+            bitset->haveAll = 0;
+            bitset->haveNone = 0;
+
+
+            /* increase the replication count of pieces only present in the new bitset */
+            if( !oldHaveAll )
             {
                 if( oldHaveNone )
                 {
-                    tr_incrReplicationFromBitset( msgs->torrent, &msgs->peer->have );
+                    tr_incrReplicationFromBitset( msgs->torrent, bitset );
                 }
                 else
                 {
-                    tr_bitfield * diff = tr_bitfieldDup( &msgs->peer->have.bitfield );
+                    tr_bitfield * diff = tr_bitfieldDup( &bitset->bitfield );
                     tr_bitfieldDifference( diff, old );
 
                     tr_incrReplicationFromBitfield( msgs->torrent, diff );
@@ -1541,8 +1555,11 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             dbgmsg( msgs, "Got a BT_FEXT_HAVE_ALL" );
             if( fext ) {
                 tr_bool oldHaveAll = msgs->peer->have.haveAll;
-                tr_bool oldHaveNone = msgs->peer->have.haveNone;   
-                tr_bitfield * bf =tr_bitfieldDup( &msgs->peer->have.bitfield );
+                tr_bool oldHaveNone = msgs->peer->have.haveNone;
+                tr_bitfield * bf = NULL;
+
+                if( !oldHaveAll && !oldHaveNone )
+                    bf = tr_bitfieldDup( &msgs->peer->have.bitfield );
 
                 tr_bitsetSetHaveAll( &msgs->peer->have );
 
