@@ -276,10 +276,10 @@ tr_decrReplicationFromBitset( tr_torrent * tor, const tr_bitset * bitset );
  * Return TRUE if the piece list is sorted, FALSE otherwise
  */
 tr_bool
-tr_arePiecesSorted( const tr_torrent * tor );
+tr_isRarestListSorted( const tr_torrent * tor );
 
 void
-tr_setPiecesSorted( tr_torrent * tor, tr_bool areSorted );
+tr_setRarestListSorted( tr_torrent * tor, tr_bool areSorted );
 
 /* @} */
 
