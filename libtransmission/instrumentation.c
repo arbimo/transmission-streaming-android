@@ -54,7 +54,7 @@ void
 tr_instruInit( tr_session * session )
 {
     assert( tr_isSession( session ) );
-    
+
     if( session->isInstruEnabled )
     {
         /* building file name */
@@ -63,7 +63,7 @@ tr_instruInit( tr_session * session )
         char  dateStr[64];
         char * logfile;
         struct stat sb;
-        
+
         configDir = tr_sessionGetConfigDir( session );
         strcpy( instruDir, configDir );
         if( instruDir[strlen(instruDir) - 1] != '/' )
@@ -82,7 +82,7 @@ tr_instruInit( tr_session * session )
         strcpy( logfile, instruDir );
         strcat( logfile, dateStr );
         strcat( logfile, ".log" );
-        
+
         /* opening log file */
         session->fd_instru = tr_open_file_for_writing( logfile );
         if( session->fd_instru == -1)
@@ -112,7 +112,7 @@ void
 tr_instruUninit( tr_session * session )
 {
     assert( tr_isSession( session ) );
-    
+
     if( session->isInstruEnabled && session->fd_instru != 0 )
     {
         tr_instruMsg( session, "# ending instrumentation");
@@ -139,17 +139,19 @@ tr_instruMsg( tr_session * session, const char * fmt, ... )
         va_list           args;
         struct evbuffer * buf = evbuffer_new( );
         struct timeval    tv;
-        
+
         assert( session->fd_instru > 0 );
-        
+
         gettimeofday( &tv, NULL );
         evbuffer_add_printf( buf, "%lu.%03d ", tv.tv_sec, (int) tv.tv_usec / 1000 );
-                            
+
         va_start( args, fmt );
         evbuffer_add_vprintf( buf, fmt, args );
         evbuffer_add_printf( buf, " \n" );
-        
+
         evbuffer_write( buf, session->fd_instru );
+
+        evbuffer_free( buf );
     }
     
 }
