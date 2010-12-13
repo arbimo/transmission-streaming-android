@@ -257,6 +257,36 @@ static void pieceListOrderResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index );
 
 
+
+
+/**
+ * Asserts ( declaration )
+ *
+ * These functions are useful for sanity checking,
+ * but are too expensive even for nightly builds...
+ * let's leave it disabled but add an easy hook to compile it back in
+ */
+
+
+//#define EXTENSIVE_ASSERT_DEBUG
+#ifdef EXTENSIVE_ASSERT_DEBUG
+
+static void assertWeightedPiecesAreSorted( Torrent * t);
+static void assertRarestPiecesAreSorted( Torrent * t );
+static void assertOrderPiecesAreSorted( Torrent * t );
+static void assertReplicationCountIsExact( Torrent * t );
+static void assertWeightedListsAreConsistent( Torrent * t );
+
+#else
+#define assertWeightedPiecesAreSorted(t)
+#define assertRarestPiecesAreSorted(t)
+#define assertOrderPiecesAreSorted(t)
+#define assertReplicationCountIsExact(t)
+#define assertWeightedListsAreConsistent( x )
+#endif
+
+
+
 /**
 ***
 **/
@@ -842,7 +872,7 @@ enum
 /* we try to create a "weight" s.t. high-priority pieces come before others,
  * and that partially-complete pieces come before empty ones. */
 static int
-comparePieceByWeight( const void * va, const void * vb )
+comparePieceByRareness( const void * va, const void * vb )
 {
     const tr_torrent * tor = weightTorrent;
     const tr_piece_index_t * inda = (tr_piece_index_t *) va;
@@ -928,8 +958,10 @@ pieceListRarestSort( Torrent * t )
     weightTorrent = t->tor;
     qsort( t->piecesRarest, t->pieceCountRarest,
            sizeof( tr_piece_index_t ),
-           comparePieceByWeight );
+           comparePieceByRareness );
     tr_setRarestListSorted( t->tor, TRUE );
+
+    assertRarestPiecesAreSorted( t );
 }
 
 static void
@@ -938,6 +970,8 @@ pieceListOrderSort( Torrent * t )
     weightTorrent = t->tor;
     qsort( t->piecesOrder, t->pieceCountOrder,
            sizeof( tr_piece_index_t ), comparePieceByOrder );
+
+    assertOrderPiecesAreSorted( t );
 }
 
 
@@ -959,109 +993,7 @@ isInEndgame( Torrent * t )
     return endgame;
 }
 
-/**
- * This function is useful for sanity checking,
- * but is too expensive even for nightly builds...
- * let's leave it disabled but add an easy hook to compile it back in
- */
-#if 0
-static void
-assertWeightedPiecesAreSorted( Torrent * t )
-{
-    if( !isInEndgame( t ) )
-    {
-        int i;
-        weightTorrent = t->tor;
-        for( i=0; i<t->pieceCount-1; ++i )
-            assert( comparePieceByWeight( &t->pieces[i], &t->pieces[i+1] ) <= 0 );
-    }
-}
-#else
-#define assertWeightedPiecesAreSorted(t)
-#endif
-#if 0
-void
-assertWeightedListsAreConsistent( tr_torrent * tor );
-#endif
 
-#if 0
-static void
-assertReplicationCountIsExact( Torrent * t )
-{
-    const int pieceCount = t->tor->info.pieceCount;
-    const int peerCount = tr_ptrArraySize( &t->peers );
-    size_t * replicationCount = tr_new( size_t, pieceCount );
-    int itPiece, itPeer; /* iterators */
-    tr_peer * peer;
-
-    for( itPiece=0 ; itPiece<pieceCount ; ++itPiece )
-    {
-        replicationCount[itPiece] = 0;
-
-        for( itPeer=0 ; itPeer<peerCount ; ++itPeer )
-        {
-            peer = tr_ptrArrayNth( &t->peers, itPeer );
-            if( tr_bitsetHasFast( &peer->have , (size_t) itPiece ) )
-                ++replicationCount[itPiece];
-        }
-
-        assert( t->pieceReplication[itPiece] == replicationCount[itPiece] );
-
-    }
-    tr_free( replicationCount );
-
-}
-#else
-#define assertReplicationCountIsExact(t)
-#endif
-
-static struct weighted_piece *
-pieceListLookup( Torrent * t, tr_piece_index_t index )
-{
-    assert( t->pieces[index].index == index );
-    return( &t->pieces[index] );
-}
-
-
-#if 0
-void
-assertWeightedListsAreConsistent( tr_torrent * tor )
-{
-    int posRar, posOrd;
-    tr_piece_index_t i;
-    Torrent * t = tor->torrentPeers;
-    tr_bool consistent = TRUE;
-
-    assert( t->pieceCount == (int) t->tor->info.pieceCount );
-    assert( t->pieceCountOrder == t->pieceCountRarest );
-
-    for( i=0 ; i<t->tor->info.pieceCount ; i++ )
-    {
-        posRar = piecePosInRarest( t, i );
-        posOrd = piecePosInOrder( t, i );
-        if( posRar < 0 )
-        {
-            if( posOrd >= 0 )
-            {
-                consistent = FALSE;
-                fprintf( stderr, "Faulty piece : %u - Rar : %d - Ord %d\n", i, posRar, posOrd );
-            }
-        }
-        else if( posOrd < 0 )
-            if( posRar >= 0 )
-            {
-                consistent = FALSE;
-                fprintf( stderr, "Faulty piece : %u - Rar : %d - Ord %d\n", i, posRar, posOrd );
-            }
-    }
-
-    assert( consistent );
-
-
-}
-#else
-#define assertWeightedListsAreConsistent( x )
-#endif
 
 static void
 pieceListRebuild( Torrent * t )
@@ -1129,7 +1061,7 @@ pieceListRebuild( Torrent * t )
             insertInSortedLists( t, pool[i] );
         }
 
-        assertWeightedListsAreConsistent( t->tor );
+        assertWeightedListsAreConsistent( t );
 
         /* cleanup */
         tr_free( pool );
@@ -1141,8 +1073,6 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
 {
     const int posRarest = piecePosInRarest( t, piece );
     const int posOrder = piecePosInOrder( t, piece );
-
-    assertWeightedListsAreConsistent( t->tor );
 
     /* Make sure the piece is present in both array or in none of them */
     //assert( posOrder != posRarest && (posOrder == -1 || posRarest == -1) );
@@ -1170,8 +1100,6 @@ pieceListRemovePiece( Torrent * t, tr_piece_index_t piece )
 
     }
 
-
-    assertWeightedListsAreConsistent( t->tor );
 }
 
 
@@ -1181,14 +1109,12 @@ pieceListRemoveRequest( Torrent * t, tr_block_index_t block )
 {
     struct weighted_piece * p;
     const tr_piece_index_t index = tr_torBlockPiece( t->tor, block );
-    assertWeightedListsAreConsistent( t->tor );
 
     if( ((p = pieceListLookup( t, index ))) && ( p->requestCount > 0 ) )
     {
         --p->requestCount;
         pieceListResortPiece( t, index );
     }
-    assertWeightedListsAreConsistent( t->tor );
 }
 
 /**
@@ -1237,9 +1163,9 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
         pieceListRarestSort( t );
 
     assertReplicationCountIsExact( t );
+    assertWeightedListsAreConsistent( t );
     assertWeightedPiecesAreSorted( t );
 
-    assertWeightedListsAreConsistent( t->tor );
 
     endgame = isInEndgame( t );
     getInOrder = TRUE;
@@ -1305,7 +1231,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
         weightTorrent = t->tor;
 
         /* not enough requests || last piece modified */
-        if ( i == t->pieceCount ) --i;
+        if ( i == pieceCount ) --i;
 
         tmp = (tr_piece_index_t *) tr_new( tr_piece_index_t, i+1 );
 
@@ -1338,7 +1264,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
     }
 
-    assertWeightedListsAreConsistent( t->tor );
+    assertWeightedListsAreConsistent( t );
     assertWeightedPiecesAreSorted( t );
     *numgot = got;
 }
@@ -3840,8 +3766,16 @@ tr_setRarestListSorted( tr_torrent * tor, tr_bool areSorted )
 
 
 
-/** Weighted pieces */
+/**
+ * Weighted pieces ( definition )
+ */
 
+static struct weighted_piece *
+pieceListLookup( Torrent * t, tr_piece_index_t index )
+{
+    assert( t->pieces[index].index == index );
+    return( &t->pieces[index] );
+}
 
 int
 piecePosInOrder( Torrent * t, tr_piece_index_t index )
@@ -3888,9 +3822,9 @@ pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index )
         return;
 
     weightTorrent = t->tor;
-    if( isSorted && ( pos > 0 ) && ( comparePieceByWeight( t->piecesRarest+pos-1, t->piecesRarest+pos ) > 0 ) )
+    if( isSorted && ( pos > 0 ) && ( comparePieceByRareness( t->piecesRarest+pos-1, t->piecesRarest+pos ) > 0 ) )
         isSorted = FALSE;
-    if( isSorted && ( pos < t->pieceCount - 1 ) && ( comparePieceByWeight( t->piecesRarest+pos, t->piecesRarest+pos+1 ) > 0 ) )
+    if( isSorted && ( pos < t->pieceCountRarest - 1 ) && ( comparePieceByRareness( t->piecesRarest+pos, t->piecesRarest+pos+1 ) > 0 ) )
         isSorted = FALSE;
 
     if( !tr_isRarestListSorted( t->tor ) )
@@ -3907,20 +3841,21 @@ pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index )
         tr_removeElementFromArray( t->piecesRarest,
                                    pos,
                                    sizeof( tr_piece_index_t ),
-                                   t->pieceCountRarest-- );
+                                   t->pieceCountRarest );
+         t->pieceCountRarest--;
 
-        pos = tr_lowerBound( t->piecesRarest+pos, t->piecesRarest, t->pieceCountRarest,
+        pos = tr_lowerBound( &index, t->piecesRarest, t->pieceCountRarest,
                              sizeof( tr_piece_index_t ),
-                             comparePieceByWeight, &exact );
+                             comparePieceByRareness, &exact );
 
         memmove( &t->piecesRarest[pos + 1],
                  &t->piecesRarest[pos],
-                 sizeof( tr_piece_index_t ) * ( t->pieceCountRarest++ - pos ) );
-
+                 sizeof( tr_piece_index_t ) * ( t->pieceCountRarest - pos ) );
+        t->pieceCountRarest++;
         t->piecesRarest[pos] = index;
     }
 
-    assertWeightedPiecesAreSorted( t );
+    assertRarestPiecesAreSorted( t );
 }
 
 void
@@ -3932,14 +3867,14 @@ pieceListOrderResortPiece( Torrent * t, tr_piece_index_t index )
 
     pos = piecePosInOrder( t, index );
 
-    /* the piee is not in the list */
+    /* the piece is not in the list */
     if( pos == -1 )
         return;
 
     weightTorrent = t->tor;
-    if( isSorted && ( pos > 0 ) && ( comparePieceByWeight( t->piecesOrder+pos-1, t->piecesOrder+pos ) > 0 ) )
+    if( isSorted && ( pos > 0 ) && ( comparePieceByOrder( t->piecesOrder+pos-1, t->piecesOrder+pos ) > 0 ) )
         isSorted = FALSE;
-    if( isSorted && ( pos < t->pieceCount - 1 ) && ( comparePieceByWeight( t->piecesOrder+pos, t->piecesOrder+pos+1 ) > 0 ) )
+    if( isSorted && ( pos < t->pieceCountOrder - 1 ) && ( comparePieceByOrder( t->piecesOrder+pos, t->piecesOrder+pos+1 ) > 0 ) )
         isSorted = FALSE;
 
     /* if it's not sorted, move it around */
@@ -3950,19 +3885,21 @@ pieceListOrderResortPiece( Torrent * t, tr_piece_index_t index )
         tr_removeElementFromArray( t->piecesOrder,
                                    pos,
                                    sizeof( tr_piece_index_t ),
-                                   t->pieceCountOrder-- );
+                                   t->pieceCountOrder );
+        t->pieceCountOrder--;
 
-        pos = tr_lowerBound( t->piecesOrder+pos, t->piecesOrder, t->pieceCountOrder,
+        pos = tr_lowerBound( &index, t->piecesOrder, t->pieceCountOrder,
                              sizeof( tr_piece_index_t ),
-                             comparePieceByWeight, &exact );
+                             comparePieceByOrder, &exact );
 
         memmove( &t->piecesOrder[pos + 1],
                  &t->piecesOrder[pos],
-                 sizeof( tr_piece_index_t ) * ( t->pieceCountOrder++ - pos ) );
+                 sizeof( tr_piece_index_t ) * ( t->pieceCountOrder - pos ) );
 
+        t->pieceCountOrder++;
         t->piecesOrder[pos] = index;
     }
-
+    assertOrderPiecesAreSorted( t );
 }
 
 void
@@ -3987,16 +3924,19 @@ void insertInSortedLists( Torrent * t, tr_piece_index_t index )
 {
     int pos;
     tr_bool exact;
+ 
+    assertWeightedPiecesAreSorted( t );
 
     weightTorrent = t->tor;
     /* rarest list */
     pos = tr_lowerBound( &index, t->piecesRarest, t->pieceCountRarest,
                          sizeof( tr_piece_index_t ),
-                         comparePieceByWeight, &exact );
+                         comparePieceByRareness, &exact );
 
     memmove( &t->piecesRarest[pos + 1],
              &t->piecesRarest[pos],
-             sizeof( tr_piece_index_t ) * ( t->pieceCountRarest++ - pos ) );
+             sizeof( tr_piece_index_t ) * ( t->pieceCountRarest - pos ) );
+    t->pieceCountRarest++;
 
     t->piecesRarest[pos] = index;
 
@@ -4008,9 +3948,99 @@ void insertInSortedLists( Torrent * t, tr_piece_index_t index )
 
     memmove( &t->piecesOrder[pos + 1],
              &t->piecesOrder[pos],
-             sizeof( tr_piece_index_t ) * ( t->pieceCountOrder++ - pos ) );
+             sizeof( tr_piece_index_t ) * ( t->pieceCountOrder - pos ) );
+    t->pieceCountOrder++;
 
     t->piecesOrder[pos] = index;
 
+    assertWeightedPiecesAreSorted( t );
+}
+
+
+
+/**
+ *    Asserts ( definition )
+ */
+
+
+
+#ifdef EXTENSIVE_ASSERT_DEBUG
+
+static void
+assertRarestPiecesAreSorted( Torrent * t )
+{
+    if( !isInEndgame( t ) )
+    {
+        int i;
+        weightTorrent = t->tor;
+        for( i=0; i<t->pieceCountRarest-1; ++i )
+            assert( comparePieceByRareness( &t->piecesRarest[i], &t->piecesRarest[i+1] ) <= 0 );
+    }
+}
+
+static void
+assertOrderPiecesAreSorted( Torrent * t )
+{
+    if( !isInEndgame( t ) )
+    {
+        int i;
+        weightTorrent = t->tor;
+        for( i=0; i<t->pieceCountOrder-1; ++i )
+            assert( comparePieceByOrder( &t->piecesOrder[i], &t->piecesOrder[i+1] ) <= 0 );
+    }
+}
+
+static void
+assertWeightedPiecesAreSorted( Torrent * t )
+{
+    assertRarestPiecesAreSorted( t );
+    assertOrderPiecesAreSorted( t );
+}
+
+static void
+assertReplicationCountIsExact( Torrent * t )
+{
+    const int pieceCount = t->tor->info.pieceCount;
+    const int peerCount = tr_ptrArraySize( &t->peers );
+    size_t * replicationCount = tr_new( size_t, pieceCount );
+    int itPiece, itPeer; /* iterators */
+    tr_peer * peer;
+
+    for( itPiece=0 ; itPiece<pieceCount ; ++itPiece )
+    {
+        replicationCount[itPiece] = 0;
+
+        for( itPeer=0 ; itPeer<peerCount ; ++itPeer )
+        {
+            peer = tr_ptrArrayNth( &t->peers, itPeer );
+            if( tr_bitsetHasFast( &peer->have , (size_t) itPiece ) )
+                ++replicationCount[itPiece];
+        }
+
+        assert( t->pieceReplication[itPiece] == replicationCount[itPiece] );
+
+    }
+    tr_free( replicationCount );
 
 }
+
+static void
+assertWeightedListsAreConsistent( Torrent * t )
+{
+    int posRar, posOrd;
+    tr_piece_index_t i;
+
+    assert( t->pieceCount == (int) t->tor->info.pieceCount );
+    assert( t->pieceCountOrder == t->pieceCountRarest );
+
+    for( i=0 ; i<t->tor->info.pieceCount ; i++ )
+    {
+        posRar = piecePosInRarest( t, i );
+        posOrd = piecePosInOrder( t, i );
+
+        assert( ( posRar < 0 && posOrd < 0 )
+             || ( posRar >= 0 && posOrd >= 0 ) );
+    }
+}
+
+#endif
