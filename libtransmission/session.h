@@ -179,6 +179,10 @@ struct tr_session
     void * buffer;
 
     tr_bool bufferInUse;
+    
+    tr_bool                      isInstruEnabled;
+    /* file descriptor for the instrumentation output */
+    int                          fd_instru; 
 };
 
 tr_bool      tr_sessionAllowsDHT( const tr_session * session );

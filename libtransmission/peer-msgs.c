@@ -25,6 +25,7 @@
 #include "completion.h"
 #include "crypto.h"
 #include "inout.h"
+#include "instrumentation.h"
 #ifdef WIN32
 #include "net.h" /* for ECONN */
 #endif
@@ -343,6 +344,15 @@ protocolSendRequest( tr_peermsgs               * msgs,
     tr_peerIoWriteUint32( io, out, req->length );
 
     dbgmsg( msgs, "requesting %u:%u->%u...", req->index, req->offset, req->length );
+
+    /* Instrumentation */
+    tr_instruMsg( msgs->torrent->session, "TR %d S R %s i %u b %u l %u",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ),
+            req->index,
+            req->offset,
+            req->length );
+
     dbgOutMessageLen( msgs );
     pokeBatchPeriod( msgs, IMMEDIATE_PRIORITY_INTERVAL_SECS );
 }
@@ -1088,6 +1098,11 @@ parseUtPex( tr_peermsgs * msgs, int msglen, struct evbuffer * inbuf )
                 int seedProbability = -1;
                 if( i < added_f_len ) seedProbability = ( added_f[i] & ADDED_F_SEED_FLAG ) ? 100 : 0;
                 tr_peerMgrAddPex( tor, TR_PEER_FROM_PEX, pex+i, seedProbability );
+
+                tr_instruMsg( tor->session, "TR %d R PEX %s %d",
+                        tor->uniqueId,
+                        tr_peerIoAddrStr( &(pex+i)->addr, (pex+i)->port ),
+                        seedProbability );
             }
 
             tr_free( pex );
@@ -1109,6 +1124,11 @@ parseUtPex( tr_peermsgs * msgs, int msglen, struct evbuffer * inbuf )
                 int seedProbability = -1;
                 if( i < added_f_len ) seedProbability = ( added_f[i] & ADDED_F_SEED_FLAG ) ? 100 : 0;
                 tr_peerMgrAddPex( tor, TR_PEER_FROM_PEX, pex+i, seedProbability );
+
+                tr_instruMsg( tor->session, "TR %d R PEX %s %d",
+                        tor->uniqueId,
+                        tr_peerIoAddrStr( &(pex+i)->addr, (pex+i)->port ),
+                        seedProbability );
             }
 
             tr_free( pex );
@@ -1216,8 +1236,8 @@ updatePeerProgress( tr_peermsgs * msgs )
 {
     msgs->peer->progress = tr_bitsetPercent( &msgs->peer->have );
     dbgmsg( msgs, "peer progress is %f", msgs->peer->progress );
-    updateFastSet( msgs );
-    updateInterest( msgs );
+    updateFastSet( msgs );   //does nothing
+    updateInterest( msgs );  //does nothing
     firePeerProgress( msgs );
 }
 
@@ -1450,6 +1470,13 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
 
             }
             updatePeerProgress( msgs );
+
+            /* Instrumentation */
+            tr_instruMsg( msgs->torrent->session, "TR %d R H %s i %u",
+                    msgs->torrent->uniqueId,
+                    tr_peerIoGetAddrStr( msgs->peer->io ),
+                    ui32 );
+
             break;
 
         case BT_BITFIELD: {
@@ -1485,6 +1512,17 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
 
             firePeerGotBitfield( msgs, diff );
             updatePeerProgress( msgs );
+
+            /* Instrumentation */
+            {
+                char * bitfieldStr;
+                bitfieldStr = tr_bitfieldToStr( &msgs->peer->have.bitfield );
+                tr_instruMsg( msgs->torrent->session, "TR %d R BF %s %s",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ),
+                        bitfieldStr );
+                tr_free( bitfieldStr );
+            }
 
             /* clean up */
             tr_bitsetDestructor( diff );
@@ -1581,6 +1619,11 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                 firePeerGotBitfield( msgs, diffBitset );
                 updatePeerProgress( msgs );
 
+                /* Instrumentation */
+                tr_instruMsg( msgs->torrent->session, "TR %d R FEXT %s HAVEALL",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
+
                 /* clean up */
                 tr_bitsetDestructor( diffBitset );
                 tr_free( diffBitset );
@@ -1596,6 +1639,11 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             if( fext ) {
                 tr_bitsetSetHaveNone( &msgs->peer->have );
                 updatePeerProgress( msgs );
+
+                /* Instrumentation */
+                tr_instruMsg( msgs->torrent->session, "TR %d R FEXT %s HAVENONE",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
             } else {
                 fireError( msgs, EMSGSIZE );
                 return READ_ERR;

@@ -27,6 +27,7 @@
 #include "crypto.h"
 #include "handshake.h"
 #include "inout.h" /* tr_ioTestPiece */
+#include "instrumentation.h"
 #include "net.h"
 #include "peer-io.h"
 #include "peer-mgr.h"
@@ -1573,6 +1574,12 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
             requestListRemove( t, block, peer );
             pieceListRemoveRequest( t, block );
 
+            tr_instruMsg( t->tor->session, "TR %d R P %s i %u b %u",
+                    t->tor->uniqueId,
+                    tr_peerIoGetAddrStr( peer->io ),
+                    tr_torBlockPiece( t->tor, block ),
+                    e->offset );
+
             if( peer != NULL )
                 tr_historyAdd( peer->blocksSentToClient, tr_date( ), 1 );
 
@@ -1599,7 +1606,10 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
                         tr_torerr( tor, _( "Piece %lu, which was just downloaded, failed its checksum test" ),
                                    (unsigned long)p );
                     }
-
+                    else 
+                    {
+                        tr_instruMsg(t->tor->session, "TR %d R PI %lu", t->tor->uniqueId, (unsigned long) p );
+                    }
                     tr_torrentSetHasPiece( tor, p, ok );
                     tr_torrentSetPieceChecked( tor, p, TRUE );
                     tr_peerMgrSetBlame( tor, p, ok );

@@ -33,6 +33,7 @@
 #include "crypto.h" /* for tr_sha1 */
 #include "resume.h"
 #include "fdlimit.h" /* tr_fdTorrentClose */
+#include "instrumentation.h"
 #include "magnet.h"
 #include "metainfo.h"
 #include "peer-common.h" /* MAX_BLOCK_SIZE */
@@ -735,6 +736,13 @@ torrentInit( tr_torrent * tor, const tr_ctor * ctor )
     if( doStart )
         torrentStart( tor );
 
+    tr_instruMsg( session, "TR %d FN %s FZ %lu NP %lu PL %lu",
+                  tor->uniqueId,
+                  tor->info.name,
+                  (unsigned long) tor->info.totalSize,
+                  (unsigned long) tor->info.pieceCount,
+                  (unsigned long) tor->info.pieceSize );
+    
     tr_sessionUnlock( session );
 }
 
