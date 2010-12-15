@@ -228,6 +228,52 @@ struct tr_peerMgr
             tr_deepLog( __FILE__, __LINE__, NULL, __VA_ARGS__ ); \
     } while( 0 )
 
+
+/**
+ * Increase the replication count of this piece and sort it if the
+ * piece list is already sorted
+ */
+void
+tr_incrReplicationOfPiece( tr_torrent * tor, const size_t index );
+
+/**
+ * Increase the replication count of pieces  present in the bitset
+ * If the piece list needs to be resorted, it sets the arePiecesSorted
+ * field to FALSE
+ */
+void
+tr_incrReplicationFromBitset( tr_torrent * tor, const tr_bitset * bitset );
+
+/**
+ * Increases the replication count of pieces present in the bitfield
+ * Sets the arePiecesSorted field to FALSE
+ */
+void
+tr_incrReplicationFromBitfield( tr_torrent * tor, const tr_bitfield * bitfield );
+
+/**
+ * Increase the replication count of every piece
+ */
+void
+tr_incrReplication( tr_torrent * tor );
+
+/**
+ * Decrease the replication count of pieces present in the bitset
+ * If the piece list needs to be resorted, it sets the arePiecesSorted
+ * field to FALSE
+ */
+void
+tr_decrReplicationFromBitset( tr_torrent * tor, const tr_bitset * bitset );
+
+/**
+ * Return TRUE if the piece list is sorted, FALSE otherwise
+ */
+tr_bool
+tr_arePiecesSorted( const tr_torrent * tor );
+
+void
+tr_setPiecesSorted( tr_torrent * tor, tr_bool areSorted );
+
 /**
 ***
 **/
@@ -1432,6 +1478,19 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
             if( peer && e->wasPieceData )
                 peer->atom->piece_data_time = now;
 
+            break;
+        }
+
+        case TR_PEER_PEER_GOT_HAVE:
+        {
+            tr_incrReplicationOfPiece( t->tor, e->pieceIndex );
+            break;
+        }
+
+        case TR_PEER_PEER_GOT_BITFIELD:
+        {
+            assert( e->bitset != 0 );
+            tr_incrReplicationFromBitset( t->tor, e->bitset );
             break;
         }
 
@@ -3619,7 +3678,7 @@ makeNewPeerConnections( struct tr_peerMgr * mgr, const int max )
 }
 
 
-/*
+/**
  * Replication count ( for rarest first policy )
  */
 

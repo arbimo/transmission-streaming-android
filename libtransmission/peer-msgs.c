@@ -462,7 +462,7 @@ protocolSendHaveNone( tr_peermsgs * msgs )
 ***  EVENTS
 **/
 
-static const tr_peer_event blankEvent = { 0, 0, 0, 0, 0.0f, 0, 0, 0 };
+static const tr_peer_event blankEvent = { 0, 0, 0, 0, 0, 0.0f, 0, 0, 0 };
 
 static void
 publish( tr_peermsgs * msgs, tr_peer_event * e )
@@ -575,6 +575,25 @@ firePeerGotData( tr_peermsgs  * msgs,
     publish( msgs, &e );
 }
 
+static void
+firePeerGotHave( tr_peermsgs * msgs,
+                 uint32_t      index )
+{
+    tr_peer_event e = blankEvent;
+    e.eventType = TR_PEER_PEER_GOT_HAVE;
+    e.pieceIndex = index;
+    publish( msgs, &e );
+}
+
+static void
+firePeerGotBitfield( tr_peermsgs * msgs,
+                     tr_bitset * bitset )
+{
+    tr_peer_event e = blankEvent;
+    e.eventType = TR_PEER_PEER_GOT_BITFIELD;
+    e.bitset = bitset;
+    publish( msgs, &e );
+}
 /**
 ***  ALLOWED FAST SET
 ***  For explanation, see http://www.bittorrent.org/beps/bep_0006.html
@@ -1426,7 +1445,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
                 }
                 else
                 {
-                    tr_incrReplicationOfPiece( msgs->torrent, ui32 );
+                    firePeerGotHave( msgs, ui32 );
                 }
 
             }
@@ -1435,21 +1454,14 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
 
         case BT_BITFIELD: {
 
-            tr_bool oldHaveAll, oldHaveNone;
-            tr_bitfield * old = NULL;
             tr_bitset * bitset = &msgs->peer->have;
+            tr_bitset * oldBitset = tr_bitsetDup( bitset );
+            tr_bitset * diff;
 
             const size_t bitCount = tr_torrentHasMetadata( msgs->torrent )
                                   ? msgs->torrent->info.pieceCount
                                   : msglen * 8;
             dbgmsg( msgs, "got a bitfield" );
-
-            /* Saving old bitset */
-            oldHaveAll = bitset->haveAll;
-            oldHaveNone = bitset->haveNone;
-            if( !oldHaveAll && !oldHaveNone )
-                old = tr_bitfieldDup( &bitset->bitfield );
-
 
             tr_bitsetReserve( bitset, bitCount );
             tr_peerIoReadBytes( msgs->peer->io, inbuf,
@@ -1460,28 +1472,28 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
 
 
             /* increase the replication count of pieces only present in the new bitset */
-            if( !oldHaveAll )
+            if( oldBitset->haveAll )
             {
-                if( oldHaveNone )
-                {
-                    tr_incrReplicationFromBitset( msgs->torrent, bitset );
-                }
-                else
-                {
-                    tr_bitfield * diff = tr_bitfieldDup( &bitset->bitfield );
-                    tr_bitfieldDifference( diff, old );
-
-                    tr_incrReplicationFromBitfield( msgs->torrent, diff );
-
-                    tr_bitfieldFree( diff );
-                }
+                tr_malloc0( sizeof( tr_bitset ) );
+                tr_bitsetSetHaveNone( diff );
             }
-            if( old != NULL )
-                tr_bitfieldFree( old );
+            else
+            {
+                diff = tr_bitsetDup( bitset );
+                tr_bitsetDifference( &diff->bitfield, oldBitset );
+            }
 
+            firePeerGotBitfield( msgs, diff );
             updatePeerProgress( msgs );
+
+            /* clean up */
+            tr_bitsetDestructor( diff );
+            tr_free( diff );
+            tr_bitsetDestructor( oldBitset );
+            tr_free( oldBitset );
+
             break;
-            }
+        }
 
         case BT_REQUEST:
         {
@@ -1554,26 +1566,25 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
         case BT_FEXT_HAVE_ALL:
             dbgmsg( msgs, "Got a BT_FEXT_HAVE_ALL" );
             if( fext ) {
-                tr_bool oldHaveAll = msgs->peer->have.haveAll;
-                tr_bool oldHaveNone = msgs->peer->have.haveNone;
-                tr_bitfield * bf = NULL;
+                tr_bitset * diffBitset = tr_bitsetDup( &msgs->peer->have );
 
-                if( !oldHaveAll && !oldHaveNone )
-                    bf = tr_bitfieldDup( &msgs->peer->have.bitfield );
+                if( diffBitset->haveNone )
+                    tr_bitsetSetHaveAll( diffBitset );
+
+                else if( diffBitset->haveAll )
+                    tr_bitsetSetHaveNone( diffBitset );
+
+                else
+                    tr_bitfieldInverse( &diffBitset->bitfield );
 
                 tr_bitsetSetHaveAll( &msgs->peer->have );
-
-                if( oldHaveNone )
-                    tr_incrReplication( msgs->torrent );
-                else if( !oldHaveAll )
-                {
-                    tr_bitfieldInverse( bf );
-                    tr_incrReplicationFromBitfield( msgs->torrent, bf );
-                    tr_bitfieldFree( bf );
-                }
-
-
+                firePeerGotBitfield( msgs, diffBitset );
                 updatePeerProgress( msgs );
+
+                /* clean up */
+                tr_bitsetDestructor( diffBitset );
+                tr_free( diffBitset );
+
             } else {
                 fireError( msgs, EMSGSIZE );
                 return READ_ERR;
