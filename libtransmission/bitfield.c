@@ -223,3 +223,30 @@ tr_bitfieldCountTrueBits( const tr_bitfield* b )
 
     return ret;
 }
+
+char *
+tr_bitfieldToStr( const tr_bitfield* b )
+{
+    char * str;
+    char * strit;
+    size_t it = 0;
+
+    /* we can use up to 999 999 pieces */
+    str = tr_malloc( b->bitCount * 7 );
+    strit = str;
+
+    if( tr_bitfieldTestFast( b, b->bitCount-1 ) == FALSE )
+        return NULL;
+
+    while( it < b->bitCount )
+    {
+        if( tr_bitfieldHasFast( b, it ) )
+        {
+            strit += sprintf( strit, " %d", it);
+        }
+        ++it;
+    }
+
+    return str;
+}
+

@@ -20,6 +20,7 @@ LOCAL_SRC_FILES:= \
     handshake.c \
     history.c \
     inout.c \
+    instrumentation.c \
     json.c \
     JSON_parser.c \
     list.c \

@@ -29,6 +29,7 @@ libtransmission_a_SOURCES = \
     handshake.c \
     history.c \
     inout.c \
+    instrumentation.c \
     json.c \
     JSON_parser.c \
     list.c \
@@ -79,6 +80,7 @@ noinst_HEADERS = \
     handshake.h \
     history.h \
     inout.h \
+    instrumentation.h \
     json.h \
     JSON_parser.h \
     list.h \
