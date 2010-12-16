@@ -1226,7 +1226,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
 
     endgame = isInEndgame( t );
-    getInOrder = TRUE;
+    getInOrder = tr_cryptoWeakRandInt( 100 ) >= TR_RAREST_PERCENTAGE ;
 
     if( getInOrder )
     {
