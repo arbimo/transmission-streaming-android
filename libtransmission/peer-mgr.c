@@ -960,9 +960,9 @@ comparePieceByRareness( const void * va, const void * vb )
     if( tor->torrentPeers->pieceReplication[a->index] < tor->torrentPeers->pieceReplication[b->index] ) return -1;
     if( tor->torrentPeers->pieceReplication[a->index] > tor->torrentPeers->pieceReplication[b->index] ) return 1;
 
-    /* quaternary key: random */
-    if( a->salt < b->salt ) return -1;
-    if( a->salt > b->salt ) return 1;
+    /* quaternary key: order */
+    if( * inda < * indb ) return -1;
+    if( * inda > * indb ) return 1;
 
     /* okay, they're equal */
     return 0;
