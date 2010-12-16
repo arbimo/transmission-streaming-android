@@ -20,6 +20,33 @@
 #include "utils.h"
 
 static void
+assertNextInOrderIsCorrect( const tr_completion * cp )
+{
+    tr_piece_index_t it;
+
+    assert( !tr_cpPieceIsComplete( cp, cp->nextInOrder )
+        || cp->nextInOrder == cp->tor->info.pieceCount -1 );
+
+    it = 0;
+    while( it < cp->nextInOrder )
+        assert( tr_cpPieceIsComplete( cp, it++ ) );
+}
+
+static void
+assertNumCompletePieceIsCorrect( tr_completion * cp )
+{
+    uint32_t num;
+    tr_piece_index_t it;
+
+    for( it=0, num=0 ; it<cp->tor->info.pieceCount ; it++ )
+    {
+        if( tr_cpPieceIsComplete( cp, it ) )
+            num++;
+    }
+    assert( cp->numCompletePieces == num );
+}
+
+static void
 tr_cpReset( tr_completion * cp )
 {
     tr_bitfieldClear( &cp->pieceBitfield );
@@ -28,6 +55,8 @@ tr_cpReset( tr_completion * cp )
     cp->sizeNow = 0;
     cp->sizeWhenDoneIsDirty = 1;
     cp->haveValidIsDirty = 1;
+    cp->nextInOrder = 0;
+    cp->numCompletePieces = 0;
 }
 
 tr_completion *
@@ -111,6 +140,9 @@ tr_cpPieceAdd( tr_completion *  cp,
 
     for( i = start; i < end; ++i )
         tr_cpBlockAdd( cp, i );
+
+    assertNextInOrderIsCorrect( cp );
+    assertNumCompletePieceIsCorrect( cp );
 }
 
 void
@@ -128,6 +160,12 @@ tr_cpPieceRem( tr_completion *  cp,
     assert( start <= end );
     assert( end <= tor->blockCount );
 
+    if( tr_cpPieceIsComplete( cp, piece) )
+        cp->numCompletePieces--;
+
+    if( piece < cp->nextInOrder )
+        cp->nextInOrder = piece;
+
     for( block = start; block < end; ++block )
         if( tr_cpBlockIsCompleteFast( cp, block ) )
             cp->sizeNow -= tr_torBlockCountBytes( tor, block );
@@ -137,6 +175,7 @@ tr_cpPieceRem( tr_completion *  cp,
     cp->completeBlocks[piece] = 0;
     tr_bitfieldRemRange ( &cp->blockBitfield, start, end );
     tr_bitfieldRem( &cp->pieceBitfield, piece );
+
 }
 
 void
@@ -153,7 +192,15 @@ tr_cpBlockAdd( tr_completion * cp, tr_block_index_t block )
         ++cp->completeBlocks[piece];
 
         if( tr_cpPieceIsComplete( cp, piece ) )
+        {
             tr_bitfieldAdd( &cp->pieceBitfield, piece );
+
+            while( cp->nextInOrder < cp->tor->info.pieceCount
+                && tr_cpPieceIsComplete( cp, cp->nextInOrder ) )
+                cp->nextInOrder++;
+
+            cp->numCompletePieces++;
+        }
 
         tr_bitfieldAdd( &cp->blockBitfield, block );
 
@@ -180,6 +227,7 @@ tr_cpSetHaveAll( tr_completion * cp )
         cp->completeBlocks[i] = tr_torPieceCountBlocks( tor, i );
     cp->sizeWhenDoneIsDirty = 1;
     cp->haveValidIsDirty = 1;
+    cp->nextInOrder = tor->info.pieceCount - 1;
 }
 
 /* Initialize a completion object from a bitfield indicating which blocks we have */
@@ -356,4 +404,22 @@ tr_cpFileIsComplete( const tr_completion * cp, tr_file_index_t fileIndex )
             return FALSE;
 
     return TRUE;
+}
+
+double
+tr_cpInOrderProgress( const tr_completion * cp )
+{
+    return (double) cp->nextInOrder / (double) cp->tor->info.pieceCount ;
+}
+
+double
+tr_cpTotalProgress( const tr_completion * cp )
+{
+    return (double) cp->numCompletePieces / (double) cp->tor->info.pieceCount ;
+}
+
+tr_piece_index_t
+tr_cpNextInOrdrerPiece( const tr_completion * cp )
+{
+    return cp->nextInOrder;
 }
