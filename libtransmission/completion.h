@@ -50,6 +50,9 @@ typedef struct tr_completion
 
     /* number of bytes we want or have now. [0..sizeWhenDone] */
     uint64_t    sizeNow;
+
+    tr_piece_index_t nextInOrder;
+    uint32_t    numCompletePieces;
 }
 tr_completion;
 
@@ -102,6 +105,15 @@ static inline float tr_cpPercentComplete( const tr_completion * cp )
     else
         return ratio;
 }
+
+double
+tr_cpInOrderProgress( const tr_completion * cp );
+
+double
+tr_cpTotalProgress( const tr_completion * cp );
+
+tr_piece_index_t
+tr_cpNextInOrdrerPiece( const tr_completion * cp );
 
 static inline float tr_cpPercentDone( const tr_completion * cp )
 {

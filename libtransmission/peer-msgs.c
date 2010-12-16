@@ -1501,7 +1501,7 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             /* increase the replication count of pieces only present in the new bitset */
             if( oldBitset->haveAll )
             {
-                tr_malloc0( sizeof( tr_bitset ) );
+                diff = tr_malloc0( sizeof( tr_bitset ) );
                 tr_bitsetSetHaveNone( diff );
             }
             else
