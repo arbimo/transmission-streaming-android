@@ -209,6 +209,7 @@ tr_cpBlockAdd( tr_completion * cp, tr_block_index_t block )
         cp->haveValidIsDirty = 1;
         cp->sizeWhenDoneIsDirty = 1;
     }
+    assertNumCompletePieceIsCorrect( cp );
 }
 
 
@@ -276,7 +277,12 @@ tr_cpBlockBitfieldSet( tr_completion * cp, tr_bitfield * blockBitfield )
                 cp->completeBlocks[p] = completeBlocksInPiece;
                 completeBlocksInTorrent += completeBlocksInPiece;
                 if( completeBlocksInPiece == blocksInCurrentPiece )
+                {
                     tr_bitfieldAdd( &cp->pieceBitfield, p );
+                    cp->numCompletePieces++;
+                    if( cp->nextInOrder == p )
+                        cp->nextInOrder = p+1;
+                }
 
                 /* reset the per-piece counters because we're starting on a new piece now */
                 ++p;
@@ -296,7 +302,7 @@ tr_cpBlockBitfieldSet( tr_completion * cp, tr_bitfield * blockBitfield )
             cp->sizeNow += tr_torBlockCountBytes( cp->tor, cp->tor->blockCount-1 );
         }
     }
-
+    assertNumCompletePieceIsCorrect( cp );
     return success;
 }
 
