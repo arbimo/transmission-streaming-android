@@ -128,6 +128,12 @@ static inline float tr_cpPercentDone( const tr_completion * cp )
 int tr_cpMissingBlocksInPiece( const tr_completion  * cp,
                                tr_piece_index_t       piece );
 
+static inline int tr_cpCompleteBlocksInPiece( const tr_completion * cp,
+                                tr_piece_index_t      piece )
+{
+    return cp->completeBlocks[piece];
+}
+
 tr_bool  tr_cpPieceIsComplete( const tr_completion * cp,
                                tr_piece_index_t      piece );
 

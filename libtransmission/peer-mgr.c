@@ -167,6 +167,7 @@ struct weighted_piece
     tr_piece_index_t index;
     int16_t salt;
     int16_t requestCount;
+    int maxDup;
 };
 
 /** @brief Opaque, per-torrent data structure for peer connection information */
@@ -315,7 +316,36 @@ static void pieceListResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListOrderResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index );
 
+static inline int updateMaxDuplicatesForPiece( tr_torrent * tor, const tr_piece_index_t index )
+{
+    struct weighted_piece * p = pieceListLookup( tor->torrentPeers, index );
 
+    if( index == tr_cpNextInOrdrerPiece( &tor->completion ) )
+    {
+        uint dup = 1;
+        const double inOrderProgress = tr_cpInOrderProgress( &tor->completion );
+        const double notInOrderProgress = tr_cpTotalProgress( &tor->completion ) - inOrderProgress;
+
+        if( notInOrderProgress >
+              1.5 * (double) TR_RAREST_PERCENTAGE *(1.0 - inOrderProgress) /100.0)
+        {
+            dup = 2;
+        }
+
+
+        if( p->maxDup != dup )
+        {
+            p->maxDup = dup;
+        }
+    }
+    else if( p->maxDup > 1 )
+    {
+        /* piece is not the next one anymore */
+        p->maxDup = 1;
+    }
+
+    return p->maxDup;
+}
 
 
 /**
@@ -927,7 +957,17 @@ enum
     PIECES_SORTED_BY_WEIGHT
 };
 
+static inline int getWeight( const tr_torrent * tor, const struct weighted_piece * p)
+{
+    const int missing = tor->blockCountInPiece - tr_cpCompleteBlocksInPiece( &tor->completion, p->index );
+    const int pending = p->requestCount;
+    const int maxDup = p->maxDup;
+    const int weight = maxDup * missing > pending ?
+        ( maxDup * missing - pending -1 ) % missing :
+        (int)(tor->blockCountInPiece + missing);
 
+        return weight;
+}
 /* we try to create a "weight" s.t. high-priority pieces come before others,
  * and that partially-complete pieces come before empty ones. */
 static int
@@ -939,15 +979,11 @@ comparePieceByRareness( const void * va, const void * vb )
 
     const struct weighted_piece * a = pieceListLookup( tor->torrentPeers, *inda);
     const struct weighted_piece * b = pieceListLookup( tor->torrentPeers, *indb);
-    int ia, ib, missing, pending;
+    int ia, ib;
 
     /* primary key: weight */
-    missing = tr_cpMissingBlocksInPiece( &tor->completion, a->index );
-    pending = a->requestCount;
-    ia = missing > pending ? missing - pending : (int)(tor->blockCountInPiece + pending);
-    missing = tr_cpMissingBlocksInPiece( &tor->completion, b->index );
-    pending = b->requestCount;
-    ib = missing > pending ? missing - pending : (int)(tor->blockCountInPiece + pending);
+    ia = getWeight( tor, a );
+    ib = getWeight( tor, b );
     if( ia < ib ) return -1;
     if( ia > ib ) return 1;
 
@@ -979,15 +1015,11 @@ comparePieceByOrder( const void * va, const void * vb )
 
     const struct weighted_piece * a = pieceListLookup( tor->torrentPeers, *inda);
     const struct weighted_piece * b = pieceListLookup( tor->torrentPeers, *indb);
-    int ia, ib, missing, pending;
+    int ia, ib;
 
     /* primary key: weight */
-    missing = tr_cpMissingBlocksInPiece( &tor->completion, a->index );
-    pending = a->requestCount;
-    ia = missing > pending ? missing - pending : (int)(tor->blockCountInPiece + pending);
-    missing = tr_cpMissingBlocksInPiece( &tor->completion, b->index );
-    pending = b->requestCount;
-    ib = missing > pending ? missing - pending : (int)(tor->blockCountInPiece + pending);
+    ia = getWeight( tor, a );
+    ib = getWeight( tor, b );
     if( ia < ib ) return -1;
     if( ia > ib ) return 1;
 
@@ -1078,6 +1110,7 @@ pieceListRebuild( Torrent * t )
             piece->index = i;
             piece->requestCount = 0;
             piece->salt = tr_cryptoWeakRandInt( 4096 );
+            piece->maxDup = 1;
 
             if( !inf->pieces[i].dnd )
                 if( !tr_cpPieceIsComplete( &tor->completion, i ) )
@@ -1244,7 +1277,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     {
         struct weighted_piece * p = pieceListLookup( t, pieces[i] );
         const int missing = tr_cpMissingBlocksInPiece( &tor->completion, p->index );
-        const int maxDuplicatesPerBlock = endgame ? 3 : 1;
+        const int maxDuplicatesPerBlock = endgame ? 3 : p->maxDup;
 
         if( p->requestCount > ( missing * maxDuplicatesPerBlock ) )
             continue;
@@ -1636,7 +1669,11 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
             else
             {
                 tr_cpBlockAdd( &tor->completion, block );
+                updateMaxDuplicatesForPiece( tor, e->pieceIndex );
                 pieceListResortPiece( t, e->pieceIndex );
+                updateMaxDuplicatesForPiece( tor, tr_cpNextInOrdrerPiece( &tor->completion ) );
+                pieceListResortPiece( t, tr_cpNextInOrdrerPiece( &tor->completion ) );
+
                 tr_torrentSetDirty( tor );
 
                 if( tr_cpPieceIsComplete( &tor->completion, e->pieceIndex ) )
