@@ -35,6 +35,8 @@
  * @{
  */
 
+#define TR_RAREST_PERCENTAGE 10
+
 struct tr_peer_stat;
 struct tr_torrent;
 typedef struct tr_peerMgr tr_peerMgr;
