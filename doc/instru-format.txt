@@ -8,7 +8,11 @@ The output file is situated in the folder "instrumentation" of transmission's co
 Implemented : 
 
   TR <id> FN <name> FZ <size> NP <numpieces> PL <piecelength>: The torrent file name is <name> with a size <size> and a number of pieces <numpieces> of length <piecelength>
+  TR <id> S C <IP>: This peer has sent a CHOKE messsage to peer with IP <IP>
+  TR <id> S UC <IP>: This peer has sent a UNCHOKE messsage to peer with IP <IP>
   TR <id> S R <IP> i <index> b <begin> l <length>: This peer has sent a REQUEST messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) wihtin the piece is <begin> and the requested block length is <length>
+  TR <id> S CA <IP> i <index> b <begin> l <length>: This peer has sent a CANCEL         messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin>        and the block length is <length>
+  TR <id> S H <IP> i <index>: This peer has sent a HAVE         messsage to peer with IP <IP> for the piece with index <index>
   TR <id> R PEX <IP>: Received PEX message containing the peer with IP <IP>
   TR <id> R PI <ID>: Received the piece with ID <ID>
   TR <id> R H <IP> i <index>: This peer has received a HAVE messsage from peer with IP <IP> for the piece with index <index>
@@ -52,12 +56,8 @@ Present in the instrumentation of the mainline client :
   TR <id> CON R <IP>: Connection remotely initiated from peer with IP <IP>
   TR <id> S I <IP>: This peer has sent a INTERESTED messsage to peer with IP <IP>
   TR <id> S NI <IP>: This peer has sent a NOT_INTERESTED messsage to peer with IP <IP>
-  TR <id> S C <IP>: This peer has sent a CHOKE messsage to peer with IP <IP>
-  TR <id> S UC <IP>: This peer has sent a UNCHOKE messsage to peer with IP <IP>
   TR <id> S BF <bitfield>: this peer has sent its bitfield message
   TR <id> S P <IP> i <index> b <begin> l <length>: This peer has sent a PIECE         messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin> and the        block length is <length>
-  TR <id> S CA <IP> i <index> b <begin> l <length>: This peer has sent a CANCEL         messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin>        and the block length is <length>
-  TR <id> S H <IP> i <index>: This peer has sent a HAVE         messsage to peer with IP <IP> for the piece with index <index>
   TR <id> S KA <IP>: This peer has sent a KEEP_ALIVE message to peer with IP <IP>
   TR <id> R KA <IP>: This peer has received a KEEP_ALIVE message from peer with IP <IP>
   TR <id> R CA <IP> i <index> b <begin> l <length>: This peer has received a CANCEL         messsage from peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin>        and the block length is <length>
