@@ -315,13 +315,19 @@ static void pieceListResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListOrderResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index );
 
-static inline int updateMaxDuplicatesForPiece( tr_torrent * tor, const tr_piece_index_t index )
+
+/**
+ * Update the maxDup parameter of the corresponding weighted piece.
+ * Return TRUE if maxDup was changed, FALSE otherwise
+ */
+static inline tr_bool updateMaxDuplicatesForPiece( tr_torrent * tor, const tr_piece_index_t index )
 {
     struct weighted_piece * p = pieceListLookup( tor->torrentPeers, index );
+    tr_bool changed = FALSE;
 
     if( index == tr_cpNextInOrdrerPiece( &tor->completion ) )
     {
-        uint dup = 1;
+        int dup = 1;
         const double inOrderProgress = tr_cpInOrderProgress( &tor->completion );
         const double notInOrderProgress = tr_cpTotalProgress( &tor->completion ) - inOrderProgress;
 
@@ -335,15 +341,17 @@ static inline int updateMaxDuplicatesForPiece( tr_torrent * tor, const tr_piece_
         if( p->maxDup != dup )
         {
             p->maxDup = dup;
+            changed = TRUE;
         }
     }
     else if( p->maxDup > 1 )
     {
-        /* piece is not the next one anymore */
+        /* this piece is not the next one anymore */
         p->maxDup = 1;
+        changed = TRUE;
     }
 
-    return p->maxDup;
+    return changed;
 }
 
 
@@ -958,15 +966,16 @@ enum
 
 static inline int getWeight( const tr_torrent * tor, const struct weighted_piece * p)
 {
-    const int missing = tor->blockCountInPiece - tr_cpCompleteBlocksInPiece( &tor->completion, p->index );
+    const int missing = (int) tor->blockCountInPiece - tr_cpCompleteBlocksInPiece( &tor->completion, p->index );
     const int pending = p->requestCount;
     const int maxDup = p->maxDup;
     const int weight = maxDup * missing > pending ?
         ( maxDup * missing - pending -1 ) % missing :
         (int)(tor->blockCountInPiece + missing);
 
-        return weight;
+    return weight;
 }
+
 /* we try to create a "weight" s.t. high-priority pieces come before others,
  * and that partially-complete pieces come before empty ones. */
 static int
@@ -1664,8 +1673,13 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
                 tr_cpBlockAdd( &tor->completion, block );
                 updateMaxDuplicatesForPiece( tor, e->pieceIndex );
                 pieceListResortPiece( t, e->pieceIndex );
-                updateMaxDuplicatesForPiece( tor, tr_cpNextInOrdrerPiece( &tor->completion ) );
-                pieceListResortPiece( t, tr_cpNextInOrdrerPiece( &tor->completion ) );
+
+                /* if the torrent has not finished downloading, update the next piece */
+                if( tr_cpNextInOrdrerPiece( &tor->completion ) < (tr_piece_index_t) t->pieceCount )
+                {
+                    if( updateMaxDuplicatesForPiece( tor, tr_cpNextInOrdrerPiece( &tor->completion ) ) )
+                        pieceListResortPiece( t, tr_cpNextInOrdrerPiece( &tor->completion ) );
+                }
 
                 tr_torrentSetDirty( tor );
 
