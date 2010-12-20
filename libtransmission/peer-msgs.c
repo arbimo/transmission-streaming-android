@@ -370,6 +370,14 @@ protocolSendCancel( tr_peermsgs               * msgs,
     tr_peerIoWriteUint32( io, out, req->offset );
     tr_peerIoWriteUint32( io, out, req->length );
 
+    /* Instrumentation */
+    tr_instruMsg( msgs->torrent->session, "TR %d S CA %s i %u b %u l %u",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ),
+            req->index,
+            req->offset,
+            req->length );
+
     dbgmsg( msgs, "cancelling %u:%u->%u...", req->index, req->offset, req->length );
     dbgOutMessageLen( msgs );
     pokeBatchPeriod( msgs, IMMEDIATE_PRIORITY_INTERVAL_SECS );
@@ -397,6 +405,12 @@ protocolSendHave( tr_peermsgs * msgs,
     tr_peerIoWriteUint32( io, out, sizeof(uint8_t) + sizeof(uint32_t) );
     tr_peerIoWriteUint8 ( io, out, BT_HAVE );
     tr_peerIoWriteUint32( io, out, index );
+
+    /* Instrumentation */
+    tr_instruMsg( msgs->torrent->session, "TR %d S H %s i %u",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ),
+            index );
 
     dbgmsg( msgs, "sending Have %u", index );
     dbgOutMessageLen( msgs );
@@ -430,6 +444,11 @@ protocolSendChoke( tr_peermsgs * msgs,
 
     tr_peerIoWriteUint32( io, out, sizeof( uint8_t ) );
     tr_peerIoWriteUint8 ( io, out, choke ? BT_CHOKE : BT_UNCHOKE );
+
+    /* Instrumentation */
+    tr_instruMsg( msgs->torrent->session, choke ? "TR %d S C %s" : "TR %d S UC %s",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ) );
 
     dbgmsg( msgs, "sending %s...", choke ? "Choke" : "Unchoke" );
     dbgOutMessageLen( msgs );
