@@ -179,6 +179,9 @@ struct tr_session
     void * buffer;
 
     tr_bool bufferInUse;
+
+    /* The percentage of pieces that should be requested with the rarest first policy */
+    int rarestPortion;
 };
 
 tr_bool      tr_sessionAllowsDHT( const tr_session * session );

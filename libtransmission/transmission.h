@@ -190,6 +190,7 @@ const char* tr_getDefaultDownloadDir( void );
 #define TR_PREFS_KEY_PROXY                         "proxy"
 #define TR_PREFS_KEY_PROXY_TYPE                    "proxy-type"
 #define TR_PREFS_KEY_PROXY_USERNAME                "proxy-auth-username"
+#define TR_PREFS_KEY_RAREST_PORTION                "rarest-portion"
 #define TR_PREFS_KEY_RATIO                         "ratio-limit"
 #define TR_PREFS_KEY_RATIO_ENABLED                 "ratio-limit-enabled"
 #define TR_PREFS_KEY_RENAME_PARTIAL_FILES          "rename-partial-files"
