@@ -323,11 +323,16 @@ static void pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index );
 /**
  * Update the maxDup parameter of the corresponding weighted piece.
  * Return TRUE if maxDup was changed, FALSE otherwise
+ *  DEACTIVATED !!!
  */
 static inline tr_bool updateMaxDuplicatesForPiece( tr_torrent * tor, const tr_piece_index_t index )
 {
     struct weighted_piece * p = pieceListLookup( tor->torrentPeers, index );
     tr_bool changed = FALSE;
+
+    /* we don't consider late (sub)pieces yet */
+    assert( p->maxDup == 1 );
+    return FALSE;
 
     if( index == tr_cpNextInOrdrerPiece( &tor->completion ) )
     {
@@ -1177,7 +1182,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
 
     endgame = isInEndgame( t );
-    getInOrder = tr_cryptoWeakRandInt( 100 ) >= TR_RAREST_PERCENTAGE ;
+    getInOrder = tr_cryptoWeakRandInt( 100 ) >= tor->session->rarestPortion;
 
     if( getInOrder )
     {

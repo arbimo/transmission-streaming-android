@@ -183,6 +183,9 @@ struct tr_session
     tr_bool                      isInstruEnabled;
     /* file descriptor for the instrumentation output */
     int                          fd_instru; 
+
+    /* The percentage of pieces that should be requested with the rarest first policy */
+    int rarestPortion;
 };
 
 tr_bool      tr_sessionAllowsDHT( const tr_session * session );
