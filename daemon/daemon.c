@@ -103,6 +103,8 @@ static const struct tr_option options[] =
     { 954, "no-global-seedratio", "All torrents, unless overridden by a per-torrent setting, should seed regardless of ratio", "GSR", 0, NULL },
     { 'x', "pid-file", "Enable PID file", "x", 1, "<pid-file>" },
     { 851, "portion", "Percentage of pieces that should be requested with the rarest first policy (Default : 10%)", NULL, 1, "<percentage>" },
+    { 852, "random-last", "Use random to decide between two pieces of same rareness", NULL, 0, NULL },
+    { 853, "order-last", "Use order to decide between two pieces of same rareness", NULL, 0, NULL },
     { 0, NULL, NULL, NULL, 0, NULL }
 };
 
@@ -410,6 +412,10 @@ main( int argc, char ** argv )
             case 'Y': tr_bencDictAddBool( &settings, TR_PREFS_KEY_LPD_ENABLED, FALSE );
                       break;
             case 851: tr_bencDictAddInt( &settings, TR_PREFS_KEY_RAREST_PORTION, atoi(optarg) );
+                      break;
+            case 852: tr_bencDictAddBool( &settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, TRUE );
+                      break;
+            case 853: tr_bencDictAddBool( &settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, FALSE );
                       break;
             default:  showUsage( );
                       break;
