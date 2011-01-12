@@ -186,6 +186,8 @@ struct tr_session
 
     /* The percentage of pieces that should be requested with the rarest first policy */
     int rarestPortion;
+    /* TRUE if the fourth selection mechanism is random */
+    tr_bool randomDecideLast;
 };
 
 tr_bool      tr_sessionAllowsDHT( const tr_session * session );

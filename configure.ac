@@ -480,9 +480,6 @@ AC_CONFIG_FILES([Makefile
                  third-party/miniupnp/Makefile
                  third-party/libnatpmp/Makefile
                  third-party/dht/Makefile
-                 macosx/Makefile
-                 gtk/Makefile
-                 gtk/icons/Makefile
                  web/Makefile
                  web/images/Makefile
                  web/images/buttons/Makefile

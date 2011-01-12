@@ -273,6 +273,7 @@ tr_sessionGetDefaultSettings( const char * configDir UNUSED, tr_benc * d )
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_PORT,               80 );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_TYPE,               TR_PROXY_HTTP );
     tr_bencDictAddStr ( d, TR_PREFS_KEY_PROXY_USERNAME,           "" );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       TRUE );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_RAREST_PORTION,           10 );
     tr_bencDictAddReal( d, TR_PREFS_KEY_RATIO,                    2.0 );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RATIO_ENABLED,            FALSE );
@@ -342,6 +343,7 @@ tr_sessionGetSettings( tr_session * s, struct tr_benc * d )
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_PORT,               s->proxyPort );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_TYPE,               s->proxyType );
     tr_bencDictAddStr ( d, TR_PREFS_KEY_PROXY_USERNAME,           s->proxyUsername );
+    tr_bencDictAddInt ( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       s->randomDecideLast );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_RAREST_PORTION,           s->rarestPortion );
     tr_bencDictAddReal( d, TR_PREFS_KEY_RATIO,                    s->desiredRatio );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RATIO_ENABLED,            s->isRatioLimited );
@@ -828,6 +830,8 @@ sessionSetImpl( void * vdata )
     if( tr_bencDictFindBool( settings, TR_PREFS_KEY_INSTRUMENTATION_ENABLED, &boolVal ) )
         session->isInstruEnabled = boolVal;
 
+    if( tr_bencDictFindBool( settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, &boolVal ) )
+        session->randomDecideLast = boolVal;
     if( tr_bencDictFindInt( settings, TR_PREFS_KEY_RAREST_PORTION, &i ) )
         session->rarestPortion = i;
 

@@ -8,12 +8,6 @@ if !WIN32
   DAEMON_DIR = daemon
 endif
 endif
-if BUILD_GTK
-  GTK_DIR = gtk po
-endif
-if BUILD_MAC
-  MAC_DIR = macosx
-endif
 
 SUBDIRS = \
   doc \
