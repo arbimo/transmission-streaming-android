@@ -25,7 +25,7 @@ assertNextInOrderIsCorrect( const tr_completion * cp )
     tr_piece_index_t it;
 
     assert( !tr_cpPieceIsComplete( cp, cp->nextInOrder )
-        || cp->nextInOrder == cp->tor->info.pieceCount -1 );
+        || cp->nextInOrder == cp->tor->info.pieceCount );
 
     it = 0;
     while( it < cp->nextInOrder )
@@ -228,7 +228,7 @@ tr_cpSetHaveAll( tr_completion * cp )
         cp->completeBlocks[i] = tr_torPieceCountBlocks( tor, i );
     cp->sizeWhenDoneIsDirty = 1;
     cp->haveValidIsDirty = 1;
-    cp->nextInOrder = tor->info.pieceCount - 1;
+    cp->nextInOrder = tor->info.pieceCount;
 }
 
 /* Initialize a completion object from a bitfield indicating which blocks we have */
