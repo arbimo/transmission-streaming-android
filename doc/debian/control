@@ -1,0 +1,10 @@
+Package: transmission-streaming
+Version: 2.0.4-1
+Section: network::client, protocol::bittorrent
+Priority: optional
+Architecture: i386
+Depends: libc6, libevent-1.4-2, libevent-core-1.4-2, libssl0.9.8, zlib1g, libcurl3-gnutls
+Conflicts: transmission, transmission-common, transmission-daemon
+Maintainer: Arthur Bit-Monnot <arthur.bitmonnot@gmail.com>
+Description: A modified version of transmission for streaming
+ It is part of a NICTA's research project 
