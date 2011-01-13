@@ -633,7 +633,7 @@ tr_sessionInitImpl( void * vdata )
     tr_webInit( session );
 
     tr_sessionSet( session, &settings );
-    
+
     tr_instruInit( session );
 
     if( session->isDHTEnabled )
@@ -645,6 +645,12 @@ tr_sessionInitImpl( void * vdata )
         tr_ndbg( "LPD", _( "Local Peer Discovery disabled" ) );
     else if( tr_lpdInit( session, &session->public_ipv4->addr ) )
         tr_ninf( "LPD", _( "Local Peer Discovery active" ) );
+
+    tr_instruMsg( session, "CF DHT %s LPD %s P %i %s",
+                  session->isDHTEnabled ? "YES" : "NO",
+                  session->isLPDEnabled ? "YES" : "NO",
+                  session->rarestPortion,
+                  session->randomDecideLast ? "RAND" : "ORD" );
 
     /* cleanup */
     tr_bencFree( &settings );

@@ -7,6 +7,7 @@ The output file is situated in the folder "instrumentation" of transmission's co
 
 Implemented : 
 
+  TR <id> CF DHT <bool> LPD <bool> P <portion> <RAND/ORD>: Session wide config parameters. <portion> is the portion of pieces chosen with a rarest first policy. <RAND/ORD> indicates which of random or order is used to choose betwen pieces of same rareness
   TR <id> FN <name> FZ <size> NP <numpieces> PL <piecelength>: The torrent file name is <name> with a size <size> and a number of pieces <numpieces> of length <piecelength>
   TR <id> S C <IP>: This peer has sent a CHOKE messsage to peer with IP <IP>
   TR <id> S UC <IP>: This peer has sent a UNCHOKE messsage to peer with IP <IP>
@@ -30,7 +31,6 @@ Implemented but not present in the mainline client :
 Present in the instrumentation of the mainline client :
 
   TR <id> GS P <percent> D <downrate> U <uprate> NS <ns> NL <nl> SR <sharerate>: General statistics        on the session. The peer has completed <percent> % of the content, the aggregate download rate is <downrate> Bytes/s,        the aggregate upload rate is <uprate> Bytes/s, the number of seeds (handshake done) is <ns>,        the number of leechers (handshake done) is <nl>, and the sharing rate is <sharerate>
-  TR <id> CF: Important config parameters
   TR <id> EC: Client automatically stopped (due to next_torrent_time) after x seconds
   TR <id> PRU <IP>: peer in leecher state performs a regular unchoke of the peer with IP <IP>
   TR <id> SRU <IP>: peer in seed state performs a regular unchoke of the peer with IP <IP>
