@@ -6,6 +6,10 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
+define build-miniupnpcstrings
+$(shell $(LOCAL_PATH)/updateminiupnpcstrings.sh $(LOCAL_PATH)/miniupnpcstrings.h.in $(LOCAL_PATH)/miniupnpcstrings.h  > /dev/null )
+endef
+
 LOCAL_SRC_FILES:= \
     connecthostport.c \
     igd_desc_parse.c \
@@ -31,5 +35,7 @@ LOCAL_STATIC_LIBRARIES := \
 
 
 LOCAL_MODULE:=libminiupnp
+
+include $(call build-miniupnpcstrings)
 
 include $(BUILD_STATIC_LIBRARY)
