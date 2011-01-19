@@ -1864,6 +1864,39 @@ myHandshakeDoneCB( tr_handshake  * handshake,
                 tr_peerIoSetParent( peer->io, t->tor->bandwidth );
                 tr_peerMsgsNew( t->tor, peer, peerCallbackFunc, t, &peer->msgsTag );
 
+                {
+                    char orig[20];
+                    switch(atom->from)
+                    {
+                        case TR_PEER_FROM_DHT:
+                            strcpy( orig, "DHT" );
+                            break;
+                        case TR_PEER_FROM_PEX:
+                            strcpy( orig, "PEX" );
+                            break;
+                        case TR_PEER_FROM_LPD:
+                            strcpy( orig, "LPD" );
+                            break;
+                        case TR_PEER_FROM_INCOMING:
+                            strcpy( orig, "INC" );
+                            break;
+                        case TR_PEER_FROM_TRACKER:
+                            strcpy( orig, "TRACKER" );
+                            break;
+                        case TR_PEER_FROM_RESUME:
+                            strcpy( orig, "RESUME" );
+                            break;
+                        case TR_PEER_FROM_LTEP:
+                            strcpy( orig, "LTEP" );
+                            break;
+                        default:
+                            strcpy( orig, "UNKNOWN" );
+                    }
+                    tr_instruMsg( t->tor->session, "CONH %s %s ORIG %s",
+                                  tr_peerIoIsIncoming( io ) ? "R" : "L",
+                                  tr_peerIoGetAddrStr( io ),
+                                  orig );
+                }
                 success = TRUE;
             }
         }

@@ -9,6 +9,8 @@ Implemented :
 
   TR <id> CF DHT <bool> LPD <bool> P <portion> <RAND/ORD>: Session wide config parameters. <portion> is the portion of pieces chosen with a rarest first policy. <RAND/ORD> indicates which of random or order is used to choose betwen pieces of same rareness
   TR <id> FN <name> FZ <size> NP <numpieces> PL <piecelength>: The torrent file name is <name> with a size <size> and a number of pieces <numpieces> of length <piecelength>
+  TR <id> CONH L <IP> ORIG <o>: Handshake performed for the connection locally initiated to peer with IP <IP>, <o> indicates the origine of the peer : DHT, RESUME, LPD, INC (incoming), TRACKER, LTEP (?), PEX
+  TR <id> CONH R <IP> ORIG <o>: Handshake performed for the connection remotely initiated from peer with IP <IP>, see the above line for more details
   TR <id> S C <IP>: This peer has sent a CHOKE messsage to peer with IP <IP>
   TR <id> S UC <IP>: This peer has sent a UNCHOKE messsage to peer with IP <IP>
   TR <id> S R <IP> i <index> b <begin> l <length>: This peer has sent a REQUEST messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) wihtin the piece is <begin> and the requested block length is <length>
@@ -43,8 +45,6 @@ Present in the instrumentation of the mainline client :
   TR <id> GSP <IP> M <state> R <round> U <uprate> UB <uptotal> D <downrate> DB <downtotal>:         General statistics for the peer with IP <IP>. The peer is a seed if <state> is S, a leecher if <state> is L        The round in _round_robin is <round> The local peer currently uploads at a rate <uprate> Bytes/s to the peer with IP <IP> and          downloads at a rate <downrate> Bytes/s from the peer with IP <IP>. The aggregated amount of bytes uploaded (resp. downloaded) is         <uptotal> (resp. <downtotal>)
   TR <id> INT i <unchokes>: Choker.py internal values. <unchokes>  is the maximum        number of unchokes to perform per 30 seconds periods
   TR <id> INT NFU <nfu> NL <nl> NK <nk> NN <nn> USL <usl> R <r>: Choker.py internal values.        <nfu> is the number of unchokes to perform on a 10 seconds interval,         <nl> is the memory for peer selection,         <nk> is the number of connections to keep, <nn> is the number of connections that will be choked,         <usl> is the number of unchokes since the last regular call to _rechoke_seed, the _round_robin method was called <r> times.
-  TR <id> CONH L <IP> U <u> T <t>: Handshake performed for the connection locally initiated to peer with IP <IP>, remote peer uses PEX if <u>=1, and comes from the tracker if <t>=1
-  TR <id> CONH R <IP> U <u> T <t>: Handshake performed for the connection remotely initiated from peer with IP <IP>, remote peer uses PEX if <u>=1, and comes from the tracker if <t>=1
   TR <id> CON ST <IP>: try to establish a socket connection to the peer with IP <IP>, Socket Try
   TR <id> CON SE <IP>: the socket connection to the peer with IP <IP> has failed, Socket Exception
   TR <id> CON SS <IP>: the socket connection to the peer with IP <IP> has succeeded, Socket Success
