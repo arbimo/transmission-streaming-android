@@ -1,3 +1,0 @@
-set solib-absolute-prefix /home/arthur/mydroid/out/target/product/generic/symbols
-set solib-search-path /home/arthur/mydroid/out/target/product/generic/symbols/system/lib
-target remote : 5234

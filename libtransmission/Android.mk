@@ -61,6 +61,9 @@ LOCAL_CFLAGS:= \
     -DPACKAGE_DATA_DIR=\"/data/misc/transmission\" \
 	$(MY_CFLAGS) \
 
+LOCAL_LDFLAGS := \
+	$(MY_LDFLAGS)
+
 LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/../third-party/libevent \
 	$(LOCAL_PATH)/../openssl/include \
