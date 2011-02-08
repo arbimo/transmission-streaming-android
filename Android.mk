@@ -15,9 +15,8 @@
 #
 ifneq ($(TARGET_SIMULATOR),true)
 	
-	DEBUG := -g
-  MY_CFLAGS := $(DEBUG) -Wall -g
-  LOCAL_LDFLAGS += -g
+  MY_CFLAGS := -g -Wall -O2
+  MY_LDFLAGS := -g -O2
 
   MY_PATH := $(call my-dir)
 
