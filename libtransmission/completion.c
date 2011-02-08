@@ -29,7 +29,10 @@ assertNextInOrderIsCorrect( const tr_completion * cp )
 
     it = 0;
     while( it < cp->nextInOrder )
-        assert( tr_cpPieceIsComplete( cp, it++ ) );
+    {
+        assert( tr_cpPieceIsComplete( cp, it ) );
+        it++;
+    }
 }
 
 static void
