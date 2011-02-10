@@ -1889,6 +1889,9 @@ myHandshakeDoneCB( tr_handshake  * handshake,
                         case TR_PEER_FROM_LTEP:
                             strcpy( orig, "LTEP" );
                             break;
+                        case TR_PEER_FROM_CMD:
+                            strcpy( orig, "CMD" );
+                            break;
                         default:
                             strcpy( orig, "UNKNOWN" );
                     }
@@ -1968,7 +1971,9 @@ tr_peerMgrAddPex( tr_torrent * tor, uint8_t from,
 
         if( !tr_sessionIsAddressBlocked( t->manager->session, &pex->addr ) )
             if( tr_isValidPeerAddress( &pex->addr, pex->port ) )
+            {
                 ensureAtomExists( t, &pex->addr, pex->port, pex->flags, seedProbability, from );
+            }
 
         managerUnlock( t->manager );
     }

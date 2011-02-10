@@ -1682,6 +1682,7 @@ enum
     TR_PEER_FROM_PEX,           /* peers found from PEX */
     TR_PEER_FROM_RESUME,        /* peers found in the .resume file */
     TR_PEER_FROM_LTEP,          /* peer address provided in an LTEP handshake */
+    TR_PEER_FROM_CMD,
     TR_PEER_FROM__MAX
 };
 
