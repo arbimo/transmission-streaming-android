@@ -1892,7 +1892,8 @@ myHandshakeDoneCB( tr_handshake  * handshake,
                         default:
                             strcpy( orig, "UNKNOWN" );
                     }
-                    tr_instruMsg( t->tor->session, "CONH %s %s ORIG %s",
+                    tr_instruMsg( t->tor->session, "TR %d CONH %s %s ORIG %s",
+                                  t->tor->uniqueId,
                                   tr_peerIoIsIncoming( io ) ? "R" : "L",
                                   tr_peerIoGetAddrStr( io ),
                                   orig );
