@@ -814,6 +814,24 @@ tr_peerMgrPeerIsSeed( const tr_torrent  * tor,
     return isSeed;
 }
 
+double tr_peerMgrPeerProgress( const tr_torrent * tor,
+                               const tr_peer * peer )
+{
+    double progress;
+    assert( peer != NULL );
+    assert( tr_isTorrent( tor ) );
+
+    if( peer->have.haveAll )
+        progress = 1.0;
+    else if( peer->have.haveNone )
+        progress = 0.0;
+    else
+        progress = (double) tr_bitfieldCountTrueBits( &peer->have.bitfield ) /
+                        (double) tor->info.pieceCount ;
+
+    return progress;
+}
+
 /**
 ***  REQUESTS
 ***

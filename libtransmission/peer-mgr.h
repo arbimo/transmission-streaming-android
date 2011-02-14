@@ -141,6 +141,9 @@ void tr_peerMgrFree( tr_peerMgr * manager );
 tr_bool tr_peerMgrPeerIsSeed( const tr_torrent * tor,
                               const tr_address * addr );
 
+double tr_peerMgrPeerProgress( const tr_torrent * tor,
+                               const tr_peer * peer );
+
 void tr_peerMgrGetNextRequests( tr_torrent          * torrent,
                                 tr_peer             * peer,
                                 int                   numwant,

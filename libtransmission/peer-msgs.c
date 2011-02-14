@@ -1253,7 +1253,7 @@ readBtId( tr_peermsgs * msgs, struct evbuffer  * inbuf, size_t inlen )
 static void
 updatePeerProgress( tr_peermsgs * msgs )
 {
-    msgs->peer->progress = tr_bitsetPercent( &msgs->peer->have );
+    msgs->peer->progress = tr_peerMgrPeerProgress( msgs->torrent, msgs->peer );
     dbgmsg( msgs, "peer progress is %f", msgs->peer->progress );
     updateFastSet( msgs );   //does nothing
     updateInterest( msgs );  //does nothing
