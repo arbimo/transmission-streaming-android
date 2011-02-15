@@ -30,6 +30,8 @@
 #include "utils.h"
 #include "version.h"
 #include "web.h"
+#include "peer-mgr.h"
+#include <netinet/in.h>
 
 #define RPC_VERSION     9
 #define RPC_VERSION_MIN 1
@@ -770,6 +772,7 @@ torrentSet( tr_session               * session,
         double       d;
         tr_benc *    files;
         tr_bool      boolVal;
+        const char * str;
         tr_torrent * tor = torrents[i];
 
         if( tr_bencDictFindInt( args_in, "bandwidthPriority", &tmp ) )
@@ -801,6 +804,32 @@ torrentSet( tr_session               * session,
             tr_torrentSetRatioLimit( tor, d );
         if( tr_bencDictFindInt( args_in, "seedRatioMode", &tmp ) )
             tr_torrentSetRatioMode( tor, tmp );
+        if( tr_bencDictFindStr( args_in, "add-peer", &str ) )
+        {
+            char * array;
+            int arraylen = sizeof( tr_address ) + 2;
+            size_t i;
+            tr_address addr;
+            uint16_t p;
+            tr_pex * pex;
+
+            char * portStr = memchr( str, ':', strlen( str ) );
+            *portStr = '\0';
+            portStr++;
+
+            tr_pton( str, &addr );
+            p = htons( atoi( portStr ) );
+            array = tr_malloc0( arraylen );
+            memcpy( array, &addr, sizeof( tr_address ) );
+            memcpy( array + sizeof( tr_address ), &p , 2 );
+
+            pex = tr_peerMgrArrayToPex( array, arraylen, &i );
+
+            tr_peerMgrAddPex( tor, TR_PEER_FROM_CMD, pex, -1 );
+
+            tr_free( pex );
+            tr_free( array );
+        }
         notify( session, TR_RPC_TORRENT_CHANGED, tor );
     }
 

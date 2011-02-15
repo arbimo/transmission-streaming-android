@@ -263,6 +263,7 @@ static tr_option opts[] =
     { 'y', "lpd",                    "Enable local peer discovery (LPD)", "y",  0, NULL },
     { 'Y', "no-lpd",                 "Disable local peer discovery (LPD)", "Y",  0, NULL },
     { 940, "peer-info",              "List the current torrent(s)' peers", "pi",  0, NULL },
+    { 999, "add-peer",               "Add a peer to the currently selected torrent", "ap", 1, "<peer>"},
     {   0, NULL,                     NULL, NULL, 0, NULL }
 };
 
@@ -359,6 +360,7 @@ getOptMode( int val )
         case 952: /* no-seedratio */
         case 984: /* honor-session */
         case 985: /* no-honor-session */
+        case 999: /* add-peer */
             return MODE_TORRENT_SET;
 
         case 920: /* session-info */
@@ -1922,6 +1924,8 @@ processArgs( const char * host, int port, int argc, const char ** argv )
                 case 984: tr_bencDictAddBool( args, "honorsSessionLimits", TRUE );
                           break;
                 case 985: tr_bencDictAddBool( args, "honorsSessionLimits", FALSE );
+                          break;
+                case 999: tr_bencDictAddStr( args, "add-peer", optarg );
                           break;
                 default:  assert( "unhandled value" && 0 );
                           break;
