@@ -814,21 +814,24 @@ torrentSet( tr_session               * session,
             tr_pex * pex;
 
             char * portStr = memchr( str, ':', strlen( str ) );
-            *portStr = '\0';
-            portStr++;
+            if( portStr != NULL )
+            {
+                *portStr = '\0';
+                portStr++;
 
-            tr_pton( str, &addr );
-            p = htons( atoi( portStr ) );
-            array = tr_malloc0( arraylen );
-            memcpy( array, &addr, sizeof( tr_address ) );
-            memcpy( array + sizeof( tr_address ), &p , 2 );
+                tr_pton( str, &addr );
+                p = htons( atoi( portStr ) );
+                array = tr_malloc0( arraylen );
+                memcpy( array, &addr, sizeof( tr_address ) );
+                memcpy( array + sizeof( tr_address ), &p , 2 );
 
-            pex = tr_peerMgrArrayToPex( array, arraylen, &i );
+                pex = tr_peerMgrArrayToPex( array, arraylen, &i );
 
-            tr_peerMgrAddPex( tor, TR_PEER_FROM_CMD, pex, -1 );
+                tr_peerMgrAddPex( tor, TR_PEER_FROM_CMD, pex, -1 );
 
-            tr_free( pex );
-            tr_free( array );
+                tr_free( pex );
+                tr_free( array );
+            }
         }
         notify( session, TR_RPC_TORRENT_CHANGED, tor );
     }
@@ -837,11 +840,11 @@ torrentSet( tr_session               * session,
     return errmsg;
 }
 
-static const char*
+    static const char*
 torrentSetLocation( tr_session               * session,
-                    tr_benc                  * args_in,
-                    tr_benc                  * args_out UNUSED,
-                    struct tr_rpc_idle_data  * idle_data UNUSED )
+        tr_benc                  * args_in,
+        tr_benc                  * args_out UNUSED,
+        struct tr_rpc_idle_data  * idle_data UNUSED )
 {
     const char * errmsg = NULL;
     const char * location = NULL;
