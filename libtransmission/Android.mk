@@ -66,7 +66,7 @@ LOCAL_LDFLAGS := \
 
 LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/../third-party/libevent \
-	$(LOCAL_PATH)/../openssl/include \
+	$(LOCAL_PATH)/../third-party/openssl/include \
 	$(LOCAL_PATH)/../third-party \
 	$(LOCAL_PATH)/../third-party/curl/include
 
