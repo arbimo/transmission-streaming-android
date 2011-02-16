@@ -467,6 +467,9 @@ protocolSendHaveAll( tr_peermsgs * msgs )
     tr_peerIoWriteUint8 ( io, out, BT_FEXT_HAVE_ALL );
 
     dbgmsg( msgs, "sending HAVE_ALL..." );
+    tr_instruMsg( msgs->torrent->session, "TR %d S FEXT %s HAVEALL",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ) );
     dbgOutMessageLen( msgs );
     pokeBatchPeriod( msgs, IMMEDIATE_PRIORITY_INTERVAL_SECS );
 }
@@ -483,6 +486,9 @@ protocolSendHaveNone( tr_peermsgs * msgs )
     tr_peerIoWriteUint8 ( io, out, BT_FEXT_HAVE_NONE );
 
     dbgmsg( msgs, "sending HAVE_NONE..." );
+    tr_instruMsg( msgs->torrent->session, "TR %d S FEXT %s HAVENONE",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ) );
     dbgOutMessageLen( msgs );
     pokeBatchPeriod( msgs, IMMEDIATE_PRIORITY_INTERVAL_SECS );
 }
@@ -721,6 +727,9 @@ sendInterest( tr_peermsgs * msgs, tr_bool clientIsInterested )
 
     msgs->peer->clientIsInterested = clientIsInterested;
     dbgmsg( msgs, "Sending %s", clientIsInterested ? "Interested" : "Not Interested" );
+    tr_instruMsg( msgs->torrent->session, clientIsInterested ? "TR %d S I %s" : "TR %d S NI %s",
+                  msgs->torrent->uniqueId,
+                  tr_peerIoGetAddrStr( msgs->peer->io ) );
     tr_peerIoWriteUint32( msgs->peer->io, out, sizeof( uint8_t ) );
     tr_peerIoWriteUint8 ( msgs->peer->io, out, clientIsInterested ? BT_INTERESTED : BT_NOT_INTERESTED );
 
@@ -1211,7 +1220,12 @@ readBtLength( tr_peermsgs *     msgs,
     tr_peerIoReadUint32( msgs->peer->io, inbuf, &len );
 
     if( len == 0 ) /* peer sent us a keepalive message */
+    {
         dbgmsg( msgs, "got KeepAlive" );
+        tr_instruMsg( msgs->torrent->session, "TR %d R KA %s",
+            msgs->torrent->uniqueId,
+            tr_peerIoGetAddrStr( msgs->peer->io ) );
+    }
     else
     {
         msgs->incoming.length = len;
@@ -1444,6 +1458,9 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
         case BT_CHOKE:
             dbgmsg( msgs, "got Choke" );
             msgs->peer->clientIsChoked = 1;
+            tr_instruMsg( msgs->torrent->session, "TR %d R C %s",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
             if( !fext )
                 fireGotChoke( msgs );
             break;
@@ -1451,17 +1468,26 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
         case BT_UNCHOKE:
             dbgmsg( msgs, "got Unchoke" );
             msgs->peer->clientIsChoked = 0;
+            tr_instruMsg( msgs->torrent->session, "TR %d R UC %s",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
             updateDesiredRequestCount( msgs, tr_date( ) );
             break;
 
         case BT_INTERESTED:
             dbgmsg( msgs, "got Interested" );
             msgs->peer->peerIsInterested = 1;
+            tr_instruMsg( msgs->torrent->session, "TR %d R I %s",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
             break;
 
         case BT_NOT_INTERESTED:
             dbgmsg( msgs, "got Not Interested" );
             msgs->peer->peerIsInterested = 0;
+            tr_instruMsg( msgs->torrent->session, "TR %d R NI %s",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
             break;
 
         case BT_HAVE:
@@ -1559,6 +1585,12 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             tr_peerIoReadUint32( msgs->peer->io, inbuf, &r.offset );
             tr_peerIoReadUint32( msgs->peer->io, inbuf, &r.length );
             dbgmsg( msgs, "got Request: %u:%u->%u", r.index, r.offset, r.length );
+            tr_instruMsg( msgs->torrent->session, "TR %d R R %s i %u b %u l %u",
+                          msgs->torrent->uniqueId,
+                          tr_peerIoGetAddrStr( msgs->peer->io ),
+                          r.index,
+                          r.offset,
+                          r.length );
             peerMadeRequest( msgs, &r );
             break;
         }
@@ -1572,6 +1604,12 @@ readBtMessage( tr_peermsgs * msgs, struct evbuffer * inbuf, size_t inlen )
             tr_peerIoReadUint32( msgs->peer->io, inbuf, &r.length );
             tr_historyAdd( msgs->peer->cancelsSentToClient, tr_date( ), 1 );
             dbgmsg( msgs, "got a Cancel %u:%u->%u", r.index, r.offset, r.length );
+            tr_instruMsg( msgs->torrent->session, "TR %d R CA %s i %u b %u l %u",
+                          msgs->torrent->uniqueId,
+                          tr_peerIoGetAddrStr( msgs->peer->io ),
+                          r.index,
+                          r.offset,
+                          r.length );
 
             for( i=0; i<msgs->peer->pendingReqsToClient; ++i ) {
                 const struct peer_request * req = msgs->peerAskedFor + i;
@@ -2066,6 +2104,11 @@ fillOutputBuffer( tr_peermsgs * msgs, time_t now )
             else
             {
                 dbgmsg( msgs, "sending block %u:%u->%u", req.index, req.offset, req.length );
+                tr_instruMsg( msgs->torrent->session, "TR %d S P %s i %u b %u l %u",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( io ),
+                        req.index, req.offset, req.length );
+
                 EVBUFFER_LENGTH(out) += req.length;
                 assert( EVBUFFER_LENGTH( out ) == msglen );
                 tr_peerIoWriteBuf( io, out, TRUE );
@@ -2100,6 +2143,10 @@ fillOutputBuffer( tr_peermsgs * msgs, time_t now )
         && ( ( now - msgs->clientSentAnythingAt ) > KEEPALIVE_INTERVAL_SECS ) )
     {
         dbgmsg( msgs, "sending a keepalive message" );
+        tr_instruMsg( msgs->torrent->session, "TR %d S KA %s ",
+                        msgs->torrent->uniqueId,
+                        tr_peerIoGetAddrStr( msgs->peer->io ) );
+
         tr_peerIoWriteUint32( msgs->peer->io, msgs->outMessages, 0 );
         pokeBatchPeriod( msgs, IMMEDIATE_PRIORITY_INTERVAL_SECS );
     }

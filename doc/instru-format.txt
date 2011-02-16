@@ -21,12 +21,25 @@ Implemented :
   TR <id> R H <IP> i <index>: This peer has received a HAVE messsage from peer with IP <IP> for the piece with index <index>
   TR <id> R BF <IP> <bitfield>: This peer has received the BITFIELD <bitfield> from peer with IP <IP>
   TR <id> R P <IP> i <index> b <begin>: This peer has received a PIECE from peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin>
+  TR <id> S I <IP>: This peer has sent a INTERESTED messsage to peer with IP <IP>
+  TR <id> S NI <IP>: This peer has sent a NOT_INTERESTED messsage to peer with IP <IP>
+  TR <id> S P <IP> i <index> b <begin> l <length>: This peer has sent a PIECE         messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin> and the        block length is <length>
+  TR <id> S KA <IP>: This peer has sent a KEEP_ALIVE message to peer with IP <IP>
+  TR <id> R KA <IP>: This peer has received a KEEP_ALIVE message from peer with IP <IP>
+  TR <id> R CA <IP> i <index> b <begin> l <length>: This peer has received a CANCEL         messsage from peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin>        and the block length is <length>
+  TR <id> R I <IP>: This peer has received a INTERESTED messsage from peer with IP <IP>
+  TR <id> R NI <IP>: This peer has received a NOT_INTERESTED messsage from peer with IP <IP>
+  TR <id> R R <IP> i <index> b <begin> l <length>: This peer has received a REQUEST         messsage from peer with IP <IP>, the index of the piece is <index>, the beginning (offset) wihtin the piece is <begin> and the         requested block length is <length>
+  TR <id> R C <IP>: This peer has received a CHOKE messsage from peer with IP <IP>
+  TR <id> R UC <IP>: This peer has received a UNCHOKE messsage from peer with IP <IP>
 
 
 Implemented but not present in the mainline client :
 
   TR <id> R FEXT <IP> HAVEALL: This peer has received a HAVEALL message from the peer with IP <IP>. The HAVEALL message is part of the Fast Extension
   TR <id> R FEXT <IP> HAVENONE: This peer has received a HAVENONE message from the peer with IP <IP>. The HAVENONE message is part of the Fast Extension
+  TR <id> S FEXT <IP> HAVEALL: We send a HAVEALL message to the peer with IP <IP>. The HAVEALL message is part of the Fast Extension
+  TR <id> S FEXT <IP> HAVENONE: We send a HAVENONE message to the peer with IP <IP>. The HAVENONE message is part of the Fast Extension
 
 
 
@@ -54,22 +67,11 @@ Present in the instrumentation of the mainline client :
   TR <id> CONS INI <m> <# of connections> : m is max_initiate (default to 40). The connections counted in <# of connections> may not have a handshake validated yet
   TR <id> CON L <IP>: Connection locally initiated to peer with IP <IP>
   TR <id> CON R <IP>: Connection remotely initiated from peer with IP <IP>
-  TR <id> S I <IP>: This peer has sent a INTERESTED messsage to peer with IP <IP>
-  TR <id> S NI <IP>: This peer has sent a NOT_INTERESTED messsage to peer with IP <IP>
   TR <id> S BF <bitfield>: this peer has sent its bitfield message
-  TR <id> S P <IP> i <index> b <begin> l <length>: This peer has sent a PIECE         messsage to peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin> and the        block length is <length>
-  TR <id> S KA <IP>: This peer has sent a KEEP_ALIVE message to peer with IP <IP>
-  TR <id> R KA <IP>: This peer has received a KEEP_ALIVE message from peer with IP <IP>
-  TR <id> R CA <IP> i <index> b <begin> l <length>: This peer has received a CANCEL         messsage from peer with IP <IP>, the index of the piece is <index>, the beginning (offset) within the piece is <begin>        and the block length is <length>
   TR <id> CON C <IP> E <i> : The connection with the peer with IP <IP> was closed due to an error.        <i> in {3-15} is the error ID. Seek in Connecter.py for the meaning of this ID
   TR <id> CONH C <IP> P <p>: A completed (i.e., handshake done) connection with peer with IP <IP> was closed, the connection was preempted is <p> is set to an IP address, False otherwise
   TR <id> S PEX <IP>: Sent PEX message
-  TR <id> R I <IP>: This peer has received a INTERESTED messsage from peer with IP <IP>
-  TR <id> R NI <IP>: This peer has received a NOT_INTERESTED messsage from peer with IP <IP>
-  TR <id> R R <IP> i <index> b <begin> l <length>: This peer has received a REQUEST         messsage from peer with IP <IP>, the index of the piece is <index>, the beginning (offset) wihtin the piece is <begin> and the         requested block length is <length>
   TR <id> CON C <IP> E <i>: The connection with the peer with IP <IP> was closed due to an error.        <i> in {1,2} is the error ID. Seek in Uploader.py for the meaning of this ID
-  TR <id> R C <IP>: This peer has received a CHOKE messsage from peer with IP <IP>
-  TR <id> R UC <IP>: This peer has received a UNCHOKE messsage from peer with IP <IP>
   TR <id> P <IP> S: The peer with IP <IP> is a seed when he join the peer set. That is, its initial bitfield is full. This message is not displayed when a remote peer become a seed while connected to the local peer.
   TR <id> CON C <IP> S: The connection with the peer with IP <IP> was closed, because the        local peer is a seed and the remote peer with IP <IP> is also a seed.
   TR <id> RT NL <n_leechers> NS <n_seeds>: The peer received from the tracker that         there are <n_leechers> leechers and <n_seeds> seeds in the torrent (equivallent to scrape mode)
