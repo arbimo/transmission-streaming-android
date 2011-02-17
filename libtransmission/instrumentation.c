@@ -23,8 +23,9 @@
  *****************************************************************************/
 
 #include <assert.h>
-#include <time.h>
 #include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "event.h"
 #include "instrumentation.h"
@@ -33,21 +34,10 @@
 #include "transmission.h"
 #include "utils.h"
 
-char*
-tr_getDateStr( char * buf, int buflen )
-{
-    struct tm      now_tm;
-    struct timeval tv;
-    time_t         seconds;
+char* getDateStr( char * dateStr, int buflen );
+char* getFileName( tr_session * session, char * logfile, int buflen );
+char* getInstruDir( tr_session * session, char * instruDir, int buflen );
 
-    gettimeofday( &tv, NULL );
-
-    seconds = tv.tv_sec;
-    tr_localtime_r( &seconds, &now_tm );
-    strftime( buf, buflen, "%m-%d_%H-%M-%S", &now_tm );
-
-    return buf;
-}
 
 
 void
@@ -58,30 +48,18 @@ tr_instruInit( tr_session * session )
     if( session->isInstruEnabled )
     {
         /* building file name */
-        const char * configDir;
-        char instruDir[256];
-        char  dateStr[64];
-        char * logfile;
+        char logfile[512];
+        char filename[256];
         struct stat sb;
 
-        configDir = tr_sessionGetConfigDir( session );
-        strcpy( instruDir, configDir );
-        if( instruDir[strlen(instruDir) - 1] != '/' )
-            strcat( instruDir, "/" );
-
-        strcat(instruDir, "instrumentation/");
-
-        if( stat( instruDir, &sb ) )
+        getInstruDir( session, logfile, 256 );
+        if( stat( logfile, &sb ) )
         {
             /* Folder doesn't exist yet, we create it */
-            tr_mkdirp( instruDir, 0777 );
+            tr_mkdirp( logfile, 0777 );
         }
 
-        tr_getDateStr( dateStr, 64 );
-        logfile = tr_malloc( strlen(instruDir) + 70 );
-        strcpy( logfile, instruDir );
-        strcat( logfile, dateStr );
-        strcat( logfile, ".log" );
+        strcat( logfile, getFileName( session, filename, 256 ) );
 
         /* opening log file */
         session->fd_instru = tr_open_file_for_writing( logfile );
@@ -98,7 +76,6 @@ tr_instruInit( tr_session * session )
             tr_dbg( "Starting instrumentation in file %s", logfile );
             tr_instruMsg( session, "# This is an instrumentation for transmission daemon" );
         }
-        tr_free( logfile );
     }
     else
     {
@@ -131,9 +108,9 @@ tr_instruUninit( tr_session * session )
 void
 tr_instruMsg( tr_session * session, const char * fmt, ... )
 {
-    
+
     assert( tr_isSession( session ) );
-    
+
     if( session->isInstruEnabled )
     {
         va_list           args;
@@ -153,5 +130,51 @@ tr_instruMsg( tr_session * session, const char * fmt, ... )
 
         evbuffer_free( buf );
     }
-    
+}
+
+
+/**** Utils ****/
+
+
+char*
+getDateStr( char * dateStr, int buflen )
+{
+    struct tm      now_tm;
+    struct timeval tv;
+    time_t         seconds;
+    char buff[buflen -5];
+
+    gettimeofday( &tv, NULL );
+
+    seconds = tv.tv_sec;
+    tr_localtime_r( &seconds, &now_tm );
+    strftime( buff, buflen-5, "%m-%d_%H-%M-%S", &now_tm );
+    snprintf( dateStr, buflen, "%s.%03d", buff, (int) (tv.tv_usec / 1000) );
+    return dateStr;
+}
+
+char*
+getFileName( tr_session * session, char * logfile, int buflen )
+{
+    char dateStr[64];
+    char hostname[100];
+
+    getDateStr( dateStr, 64 );
+    gethostname( hostname, 100 );
+    snprintf( logfile, buflen, "%s__%s:%d.log", dateStr, hostname, session->peerPort );
+
+    return logfile;
+}
+
+char *
+getInstruDir( tr_session * session, char * instruDir, int buflen )
+{
+    const char * configDir = tr_sessionGetConfigDir( session );
+    strncpy( instruDir, configDir, buflen );
+    if( instruDir[strlen(instruDir) - 1] != '/' )
+        strncat( instruDir, "/", buflen );
+
+    strncat(instruDir, "instrumentation/", buflen );
+
+    return instruDir;
 }
