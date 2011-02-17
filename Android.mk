@@ -23,7 +23,7 @@ ifneq ($(TARGET_SIMULATOR),true)
 
   LOCAL_PATH := $(MY_PATH)
   subdirs := $(addprefix $(LOCAL_PATH)/,$(addsuffix /Android.mk, \
-		openssl \
+		third-party/openssl \
 		third-party/curl \
 		third-party/libevent \
 		third-party/miniupnp \

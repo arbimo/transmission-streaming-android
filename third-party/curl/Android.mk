@@ -15,7 +15,7 @@ include $(LOCAL_PATH)/lib/Makefile.inc
 
 LOCAL_SRC_FILES := $(addprefix lib/,$(CSOURCES))
 LOCAL_CFLAGS += $(CFLAGS)
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/include/ $(LOCAL_PATH)/lib $(LOCAL_PATH)/../../openssl/include/ external/zlib/
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/include/ $(LOCAL_PATH)/lib $(LOCAL_PATH)/../openssl/include/ external/zlib/
 
 LOCAL_COPY_HEADERS_TO := libcurl
 # LOCAL_COPY_HEADERS := $(addprefix third-party/curl/include/curl/,$(HHEADERS))
