@@ -15,7 +15,7 @@
 #
 ifneq ($(TARGET_SIMULATOR),true)
 	
-  MY_CFLAGS := -g -Wall -O2
+  MY_CFLAGS := -g -Wall -O2 -DSUPPORT_TCP_FEEDER
   MY_LDFLAGS := -g -O2
 
   MY_PATH := $(call my-dir)
@@ -28,6 +28,8 @@ ifneq ($(TARGET_SIMULATOR),true)
 		third-party/miniupnp \
 		third-party/libnatpmp \
 		third-party/dht \
+		third-party/tcp-feeder \
+        third-party/scent \
 		libtransmission \
 		daemon \
 	))

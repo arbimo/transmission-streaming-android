@@ -1,0 +1,33 @@
+trust_agent.c:		ptrust = ptrust->next;
+trust_common.c:	int itemcount = (ptrust->update_cnt >= MAX_TRUST_WINDOWS) ? MAX_TRUST_WINDOWS : ptrust->update_cnt;
+trust_common.c:	for (i=0; i < itemcount; i++ ) sum += ptrust->trust_val[i];
+trust_common.c:	if(memcmp(ptrust->mac_addr,macaddr,MAC_ADDR_LEN) == 0) return ptrust;
+trust_common.c:		fprintf(stderr,"FindPeerTrustElement() PeerTrust Element found by the node_id  has a different mac_address (%s), to the given mac_addr (%s) \n", macaddress_ntos(ptrust->mac_addr),macaddress_ntos(macaddr));
+trust_common.c:		ptrust->node_uid = node_id;
+trust_common.c:		memcpy(ptrust->mac_addr,macaddr,MAC_ADDR_LEN);
+trust_common.c:		ptrust->trust_val[0] = trustval;
+trust_common.c:		ptrust->current_win_index = 1;
+trust_common.c:		ptrust->update_cnt = 1;
+trust_common.c:		ptrust->last_tv = *update_time;
+trust_common.c:		ptrust->prev = NULL;
+trust_common.c:		ptrust->next = NULL;
+trust_common.c:			ptrust->prev = tmp;
+trust_common.c:		ptrust->trust_val[ptrust->current_win_index] = trustval;
+trust_common.c:		ptrust->current_win_index++;
+trust_common.c:		ptrust->update_cnt++;
+trust_common.c:		ptrust->last_tv = *update_time;
+trust_common.c:		ptrust->current_win_index = (ptrust->current_win_index % MAX_TRUST_WINDOWS);  // cap the current_win_index
+trust_common.c:	for(ptrust = ntrustlist->head; ptrust != NULL; ptrust = ptrust->next)
+trust_common.c:		printf(" %d  \t  %s \n", ptrust->node_uid,macaddress_ntos(ptrust->mac_addr));
+trust_common.c:		ref_usec = get_timediff_usec(&curr_time,&(ptrust->last_tv));
+trust_common.c:			printf("RemoveExpiredPeers() : peer_trust expired.. removing peer (%d : %s) from the list, size before removal = %d \n",ptrust->node_uid,macaddress_ntos(ptrust->mac_addr) , ntrustlist->size);
+trust_common.c:			rem_node = ptrust->node_uid;
+trust_common.c:			strcpy(rem_macaddr,macaddress_ntos(ptrust->mac_addr));
+trust_common.c:			if(ptrust->prev == NULL) // means head
+trust_common.c:				if((ptrust->next == NULL) && (ntrustlist->size > 1))
+trust_common.c:				if(ptrust->next) ptrust->next->prev = NULL;
+trust_common.c:				ntrustlist->head = ptrust->next;
+trust_common.c:				if(ptrust->prev) ptrust->prev->next = ptrust->next;
+trust_common.c:				if(ptrust->next) ptrust->next->prev = ptrust->prev;
+trust_common.c:			tmpptrust = ptrust->next;
+trust_common.c:		} else  ptrust = ptrust->next;

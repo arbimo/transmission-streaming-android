@@ -21,7 +21,8 @@ LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/../third-party \
 	$(LOCAL_PATH)/../third-party/libevent \
 	$(LOCAL_PATH)/../openssl/include \
-	$(LOCAL_PATH)/../third-party/curl/include
+	$(LOCAL_PATH)/../third-party/curl/include \
+	$(LOCAL_PATH)/../third-party/tcp-feeder
 
 LOCAL_SHARED_LIBRARIES := \
 	libcutils 
@@ -29,6 +30,8 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_STATIC_LIBRARIES := \
 	libtransmission \
+    tcp-feeder \
+	libscent \
 	libcurl \
 	libminiupnp \
 	libnatpmp \
@@ -36,7 +39,7 @@ LOCAL_STATIC_LIBRARIES := \
 	libevent \
 	libz \
 	libssl \
-	libcrypto  
+	libcrypto \
 
 
 LOCAL_LDLIBS += -llog 
@@ -71,18 +74,18 @@ LOCAL_C_INCLUDES:= \
 LOCAL_SHARED_LIBRARIES := \
 	libcutils 
 
-
 LOCAL_STATIC_LIBRARIES := \
-	libtransmission \
-	libcurl \
-	libminiupnp \
-	libnatpmp \
-	libdht \
-	libevent \
-	libz \
-	libssl \
-	libcrypto  
-
+		libtransmission \
+		tcp-feeder \
+		libscent \
+		libcurl \
+		libminiupnp \
+		libnatpmp \
+		libdht \
+		libevent \
+		libz \
+		libssl \
+		libcrypto  
 
 LOCAL_LDLIBS += -llog 
 

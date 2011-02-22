@@ -161,7 +161,7 @@ getFileName( tr_session * session, char * logfile, int buflen )
 
     getDateStr( dateStr, 64 );
     gethostname( hostname, 100 );
-    snprintf( logfile, buflen, "%s__%s:%d.log", dateStr, hostname, session->peerPort );
+    snprintf( logfile, buflen, "%s__%s_%d.log", dateStr, hostname, session->peerPort );
 
     return logfile;
 }

@@ -1,0 +1,72 @@
+
+
+#ifndef TRUST_COMMON_H
+#define TRUST_COMMON_H
+
+#define  MAX_TRUST_WINDOWS 5
+
+#define  NEIGHBOR_MAX    10
+/* an average value of trust of range 0 -9 */
+#define  DEFAULT_TRUST    5  
+
+
+/** Trust value of a peer/node  */
+struct PeerTrust {
+	u_int8_t node_uid;     /* Node unique id */
+	u_int8_t mac_addr[IEEE80211_ADDR_LEN];  /* Mac address of the node */
+	u_int8_t trus_tval[MAX_TRUST_WINDOWS];  /* stores the trust values evalvated at the last "MAX_TRUST_WINDOWS"  attempts */
+	u_int8_t current_win_index;  /* current window index  at which the next trust update to bve stored */
+	u_int16_t update_cnt;    /* Total number of trust updates for this node so far */
+	struct time_val last_tv;  /* last updated time  */
+
+};
+
+
+struct NeighborTrustList {
+	struct PeerTrust  peerTrust[NEIGHBOR_MAX];
+};
+
+
+int GetTrustAverage(struct PeerTrust  *ptrust);
+
+
+void InitNeighborTrustList(struct NeighborTrustList *ntrustlist);
+
+
+int GetPeerTrustIndex(struct NeighborTrustList *ntrustlist, u_int8_t *uid);
+
+int GetPeerTrustIndex(struct NeighborTrustList *ntrustlist, u_int8_t **macaddr);
+
+
+int UpdatePeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t node_id, int trustval);
+
+
+int UpdatePeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t **macaddr, int trustval);
+
+int GetPeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t **macaddr);
+
+int GetPeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t node_id);
+
+
+/** Trust Messages for */
+
+struct  PeerTrustMsg
+{
+	uint8_t node_id;
+	uint8_t mac_addr[MAC_ADDRESS_LEN];
+	uint8_t trust_val;
+	uint32_t timestamp;
+}
+
+struct PeerTrustMsgCombined
+{
+	uint16_t msg_len;
+	uint8_t  msg_count;
+	struct  PeerTrustMsg *pTrustMsgList;
+}
+
+struct PeerTrustMsgCombined *CreatePeerTrustMsgCombined(uint8_t  msg_count);
+
+void FreePeerTrustMsgCombined(struct PeerTrustMsgCombined *ptrmsgcm);
+
+#endif

@@ -32,6 +32,7 @@
 #include "peer-io.h"
 #include "peer-mgr.h"
 #include "peer-msgs.h"
+#include "playback.h"
 #include "ptrarray.h"
 #include "session.h"
 #include "stats.h" /* tr_statsAddUploaded, tr_statsAddDownloaded */
@@ -1643,6 +1644,7 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
                     else 
                     {
                         tr_instruMsg(t->tor->session, "TR %d R PI %lu", t->tor->uniqueId, (unsigned long) p );
+                        tr_playbackSetTorrent( tor );
                     }
                     tr_torrentSetHasPiece( tor, p, ok );
                     tr_torrentSetPieceChecked( tor, p, TRUE );

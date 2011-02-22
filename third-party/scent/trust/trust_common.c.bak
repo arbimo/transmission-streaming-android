@@ -1,0 +1,145 @@
+
+
+#include "trust_common.h"
+
+
+/*
+#define  MAX_TRUST_WINDOWS 5
+
+#define  NEIGHBOR_MAX    10
+// an average value of trust of range 0 -9 
+#define  DEFAULT_TRUST    5  
+
+
+//  Trust value of a peer/node  
+struct PeerTrust {
+	u_int8_t node_uid;      //Node unique id 
+	u_int8_t mac_addr[IEEE80211_ADDR_LEN];  //  Mac address of the node 
+	u_int8_t trus_tval[MAX_TRUST_WINDOWS];  // stores the trust values evalvated at the last "MAX_TRUST_WINDOWS"  attempts 
+	u_int8_t current_win_index;  // current window index  at which the next trust update to bve stored 
+	u_int16_t update_cnt;    // Total number of trust updates for this node so far 
+	struct time_val last_tv;  // last updated time
+
+};
+
+
+
+struct NeighborTrustList {
+	struct PeerTrust[NEIGHBOR_MAX];
+};
+*/
+
+int GetTrustAverage(struct PeerTrust  *ptrust)
+{
+	if(!ptrust) return;
+	int itemcount = (ptrust->update_cnt >= MAX_TRUST_WINDOWS) ? MAX_TRUST_WINDOWS : ptrust->update_cnt;
+	if(itemcount <= 0) return -1;
+	int i = 0; int sum = 0;
+	for (i=0; i < itemcount; i++ ) sum += ptrust->trustval[i];
+	return sum/itemcount;
+}
+
+
+void InitNeighborTrustList(struct NeighborTrustList *ntrustlist)
+{
+	if(!ntrustlist) return;
+	int i =0;
+	for(i; i< NEIGHBOR_MAX; i++)
+	{
+		ntrustlist.peerTrust[i].node_uid =0;
+		memset(  &(ntrustlist->peerTrust[i].mac_addr[0]),0,IEEE80211_ADDR_LEN);
+		ntrustlist->peerTrust[i].trust_val = DEFAULT_TRUST;
+		ntrustlist->peerTrust[i].current_win_index = 0;
+		ntrustlist->peerTrust[i].update_cnt = 0;
+		ntrustlist->peerTrust[i].last_tv.usec = 0;
+		ntrustlist->peerTrust[i].last_tv.sec = 0
+	}
+}
+
+
+int GetPeerTrustIndex(struct NeighborTrustList *ntrustlist, u_int8_t *uid)
+{oogl
+	int i = 0;
+		for(i; i< NEIGHBOR_MAX; i++)
+		{
+			if(ntrustlist->peerTrust[i].node_uid == uid) return i;
+		}
+	return -1;
+
+}
+
+int GetPeerTrustIndex(struct NeighborTrustList *ntrustlist, u_int8_t **macaddr)
+{
+	int i = 0;
+		for(i; i< NEIGHBOR_MAX; i++)
+		{
+			if(memcmp(&(ntrustlist->peerTrust[i].mac_addr[0]),&(macaddr[0]),IEEE80211_ADDR_LEN) == 0) return i;
+		
+		}get_peer_trust_index
+	return -1;
+
+}
+
+int UpdatePeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t node_id, int trustval)
+{
+	int index = GetPeerTrustIndex(ntrustlist,node_id);
+	if(index < 0) return -1;
+	ntrustlist->peerTrust[index].trust_val = trustval;
+	return 1;
+}
+
+int UpdatePeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t **macaddr, int trustval)
+{
+	int index = GetPeerTrustIndex(ntrustlist,macaddr);
+	if(index < 0) return -1;
+	ntrustlist->peerTrust[index].trust_val = trustval;
+	return 1;
+}
+
+int GetPeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t **macaddr)
+{
+	int index = GetPeerTrustIndex(ntrustlist,macaddr);
+	  if(index < 0) return -1;
+}
+
+int GetPeerTrust(struct NeighborTrustList *ntrustlist, u_int8_t node_id)
+{
+	int index = GetPeerTrustIndex(ntrustlist,node_id);
+	  if(index < 0) return -1;
+}
+
+
+
+
+/** Peer Trust Messages */
+struct PeerTrustMsgCombined *CreatePeerTrustMsgCombined(uint8_t  msg_count)
+{
+	struct PeerTrustMsgCombined *com_trmsg =  (struct PeerTrustMsgCombined *)malloc(sizeof(struct PeerTrustMsgCombined));
+	if(!com_trmsg)  {
+		perror("create_Combined_Trust_Msg() : malloc failed to create Combined_Trust_Msg object : ");
+		fprintf(stderr, "create_Combined_Trust_Msg() : malloc failed to create Combined_Trust_Msg object\n");
+		return NULL;
+	}
+	com_trmsg->msg_count = msg_count;
+	int trustmsglen = sizeof(struct  PeerTrust);
+	com_trmsg->msg_len = msg_count*trustmsglen;
+	com_trmsg->pTrustMsgList = (struct  PeerTrust *)malloc(msg_count*sizeof(struct  PeerTrust));
+	if(!com_trmsg->pTrustMsgList)  {
+		perror("create_Combined_Trust_Msg() : malloc failed to create Trust_Msg list : ");
+		fprintf(stderr, "create_Combined_Trust_Msg() : malloc failed to create Trust_Msg list \n");
+		return NULL;
+	}
+
+	return com_trmsg;
+}
+
+void FreePeerTrustMsgCombined(struct PeerTrustMsgCombined *ptrmsgcm);
+{
+	if(!com_trmsg) return;
+	if(com_trmsg->pTrustMsgList) free(com_trmsg->pTrustMsgList);
+	else fprintf(stderr, "free_Combined_Trust_Msg: com_trmsg->pTrustMsgList is empty\n");
+	free(com_trmsg);
+	com_trmsg = NULL;
+
+}
+

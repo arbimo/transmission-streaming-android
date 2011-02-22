@@ -15,9 +15,11 @@
 
 #include "transmission.h"
 #include "completion.h"
+#include "playback.h"
 #include "torrent.h"
 #include "torrent-magnet.h"
 #include "utils.h"
+
 
 static void
 assertNextInOrderIsCorrect( const tr_completion * cp )
@@ -167,7 +169,12 @@ tr_cpPieceRem( tr_completion *  cp,
         cp->numCompletePieces--;
 
     if( piece < cp->nextInOrder )
+    {
+#ifdef SUPPORT_TCP_FEEDER
+        fprintf( stderr, "\n         *\n BIG PROBLEM \n       *\n" );
+#endif
         cp->nextInOrder = piece;
+    }
 
     for( block = start; block < end; ++block )
         if( tr_cpBlockIsCompleteFast( cp, block ) )
@@ -212,6 +219,13 @@ tr_cpBlockAdd( tr_completion * cp, tr_block_index_t block )
         cp->haveValidIsDirty = 1;
         cp->sizeWhenDoneIsDirty = 1;
     }
+
+    if( cp->nextInOrder > 0 )
+    {
+        tr_playbackSetWrittenBytes( cp->tor, tr_pieceOffset( cp->tor, cp->nextInOrder-1,
+                                                             tr_torPieceCountBytes( cp->tor, cp->nextInOrder-1 ), 0 ) );
+    }
+
     assertNumCompletePieceIsCorrect( cp );
 }
 
@@ -232,6 +246,12 @@ tr_cpSetHaveAll( tr_completion * cp )
     cp->sizeWhenDoneIsDirty = 1;
     cp->haveValidIsDirty = 1;
     cp->nextInOrder = tor->info.pieceCount;
+
+    if( cp->nextInOrder > 0 )
+    {
+        tr_playbackSetWrittenBytes( cp->tor, tr_pieceOffset( cp->tor, cp->nextInOrder-1,
+                                                             tr_torPieceCountBytes( cp->tor, cp->nextInOrder-1 ), 0 ) );
+    }
 }
 
 /* Initialize a completion object from a bitfield indicating which blocks we have */
@@ -239,9 +259,12 @@ tr_bool
 tr_cpBlockBitfieldSet( tr_completion * cp, tr_bitfield * blockBitfield )
 {
     int success = FALSE;
+    tr_piece_index_t oldNextInOrder;
 
     assert( cp );
     assert( blockBitfield );
+
+    oldNextInOrder = cp->nextInOrder;
 
     /* The bitfield of block flags is typically loaded from a resume file.
        Test the bitfield's length in case the resume file somehow got corrupted */
@@ -305,6 +328,12 @@ tr_cpBlockBitfieldSet( tr_completion * cp, tr_bitfield * blockBitfield )
             cp->sizeNow += tr_torBlockCountBytes( cp->tor, cp->tor->blockCount-1 );
         }
     }
+    if( cp->nextInOrder > 0 )
+    {
+        tr_playbackSetWrittenBytes( cp->tor, tr_pieceOffset( cp->tor, cp->nextInOrder-1,
+                                                             tr_torPieceCountBytes( cp->tor, cp->nextInOrder-1 ), 0 ) );
+    }
+
     assertNumCompletePieceIsCorrect( cp );
     return success;
 }

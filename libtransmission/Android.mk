@@ -33,6 +33,7 @@ LOCAL_SRC_FILES:= \
     peer-mgr.c \
     peer-msgs.c \
     platform.c \
+    playback.c \
     port-forwarding.c \
     ptrarray.c \
     publish.c \
@@ -68,7 +69,10 @@ LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/../third-party/libevent \
 	$(LOCAL_PATH)/../third-party/openssl/include \
 	$(LOCAL_PATH)/../third-party \
-	$(LOCAL_PATH)/../third-party/curl/include
+	$(LOCAL_PATH)/../third-party/curl/include \
+    $(LOCAL_PATH)/../third-party/tcp-feeder \
+    $(LOCAL_PATH)/../third-party/scent/include \
+
 
 LOCAL_SHARED_LIBRARIES := \
 
@@ -80,7 +84,7 @@ LOCAL_STATIC_LIBRARIES := \
 	libevent \
 	dht \
 	libnatpmp \
-	libminiupnp 
+	libminiupnp
 
 LOCAL_LDLIBS += -llog
 

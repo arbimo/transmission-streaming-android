@@ -37,6 +37,7 @@
 #include "peer-io.h"
 #include "peer-mgr.h"
 #include "platform.h" /* tr_lock */
+#include "playback.h"
 #include "port-forwarding.h"
 #include "rpc-server.h"
 #include "session.h"
@@ -570,6 +571,7 @@ onNowTimer( int foo UNUSED, short bar UNUSED, void * vsession )
 
 static void loadBlocklists( tr_session * session );
 
+
 static void
 tr_sessionInitImpl( void * vdata )
 {
@@ -635,6 +637,8 @@ tr_sessionInitImpl( void * vdata )
     tr_sessionSet( session, &settings );
 
     tr_instruInit( session );
+
+    tr_playbackInit( session );
 
     if( session->isDHTEnabled )
     {
@@ -1606,6 +1610,8 @@ sessionCloseImpl( void * vsession )
 
     if( session->isInstruEnabled )
         tr_instruUninit( session );
+
+    tr_playbackFinish( session );
 
     evtimer_del( session->saveTimer );
     tr_free( session->saveTimer );
