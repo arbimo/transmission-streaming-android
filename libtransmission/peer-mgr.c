@@ -1195,6 +1195,9 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     got = 0;
     t = tor->torrentPeers;
 
+    if( tr_torIsZipf( tor ) )
+        fprintf( stderr, "Zipf\n" );
+
     /* prep the pieces list */
     if( t->pieces == NULL )
         pieceListRebuild( t );

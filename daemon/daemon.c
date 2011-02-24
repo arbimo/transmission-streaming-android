@@ -106,6 +106,8 @@ static const struct tr_option options[] =
     { 851, "portion", "Percentage of pieces that should be requested with the rarest first policy (Default : 10%)", NULL, 1, "<percentage>" },
     { 852, "random-last", "Use random to decide between two pieces of same rareness", NULL, 0, NULL },
     { 853, "order-last", "Use order to decide between two pieces of same rareness", NULL, 0, NULL },
+    { 854, "zipf", "Use the zipf scheduling policy", NULL, 0, NULL },
+    { 855, "no-zipf", "Disable the use of zipf as scheduling policy", NULL, 0, NULL },
     { 0, NULL, NULL, NULL, 0, NULL }
 };
 
@@ -419,6 +421,10 @@ main( int argc, char ** argv )
             case 852: tr_bencDictAddBool( &settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, TRUE );
                       break;
             case 853: tr_bencDictAddBool( &settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, FALSE );
+                      break;
+            case 854: tr_bencDictAddBool( &settings, TR_PREFS_KEY_USE_ZIPF, TRUE );
+                      break;
+            case 855: tr_bencDictAddBool( &settings, TR_PREFS_KEY_USE_ZIPF, FALSE );
                       break;
             default:  showUsage( );
                       break;

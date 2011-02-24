@@ -274,6 +274,7 @@ tr_sessionGetDefaultSettings( const char * configDir UNUSED, tr_benc * d )
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_TYPE,               TR_PROXY_HTTP );
     tr_bencDictAddStr ( d, TR_PREFS_KEY_PROXY_USERNAME,           "" );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       TRUE );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_USE_ZIPF,                 FALSE );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_RAREST_PORTION,           10 );
     tr_bencDictAddReal( d, TR_PREFS_KEY_RATIO,                    2.0 );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RATIO_ENABLED,            FALSE );
@@ -343,7 +344,8 @@ tr_sessionGetSettings( tr_session * s, struct tr_benc * d )
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_PORT,               s->proxyPort );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_TYPE,               s->proxyType );
     tr_bencDictAddStr ( d, TR_PREFS_KEY_PROXY_USERNAME,           s->proxyUsername );
-    tr_bencDictAddInt ( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       s->randomDecideLast );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       s->randomDecideLast );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_USE_ZIPF,                 s->useZipf );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_RAREST_PORTION,           s->rarestPortion );
     tr_bencDictAddReal( d, TR_PREFS_KEY_RATIO,                    s->desiredRatio );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RATIO_ENABLED,            s->isRatioLimited );
@@ -646,11 +648,16 @@ tr_sessionInitImpl( void * vdata )
     else if( tr_lpdInit( session, &session->public_ipv4->addr ) )
         tr_ninf( "LPD", _( "Local Peer Discovery active" ) );
 
-    tr_instruMsg( session, "CF DHT %s LPD %s P %i %s",
-                  session->isDHTEnabled ? "YES" : "NO",
-                  session->isLPDEnabled ? "YES" : "NO",
-                  session->rarestPortion,
-                  session->randomDecideLast ? "RAND" : "ORD" );
+    if( !session->useZipf )
+        tr_instruMsg( session, "CF DHT %s LPD %s RAR %i %s",
+                      session->isDHTEnabled ? "YES" : "NO",
+                      session->isLPDEnabled ? "YES" : "NO",
+                      session->rarestPortion,
+                      session->randomDecideLast ? "RAND" : "ORD" );
+    else
+        tr_instruMsg( session, "CF DHT %s LPD %s ZIPF",
+                      session->isDHTEnabled ? "YES" : "NO",
+                      session->isLPDEnabled ? "YES" : "NO" );
 
     /* cleanup */
     tr_bencFree( &settings );
@@ -829,17 +836,22 @@ sessionSetImpl( void * vdata )
         tr_sessionSetTorrentDoneScriptEnabled( session, boolVal );
     if( tr_bencDictFindStr( settings, TR_PREFS_KEY_SCRIPT_TORRENT_DONE_FILENAME, &str ) )
         tr_sessionSetTorrentDoneScript( session, str );
-    
+
     /**
     ***  Instrumentation
     **/
     if( tr_bencDictFindBool( settings, TR_PREFS_KEY_INSTRUMENTATION_ENABLED, &boolVal ) )
         session->isInstruEnabled = boolVal;
 
+    /**
+    ***  Scheduling
+    **/
     if( tr_bencDictFindBool( settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, &boolVal ) )
         session->randomDecideLast = boolVal;
     if( tr_bencDictFindInt( settings, TR_PREFS_KEY_RAREST_PORTION, &i ) )
         session->rarestPortion = i;
+    if( tr_bencDictFindBool( settings, TR_PREFS_KEY_USE_ZIPF, &boolVal ) )
+        session->useZipf = boolVal;
 
     data->done = TRUE;
 }
