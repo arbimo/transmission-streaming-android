@@ -35,7 +35,15 @@ int data_sock = -1;
 uint64_t write_total_global = 0;
 uint64_t read_total_global = 0;
 double this_movi_rate = 100000.0; // in kbits/sec
+
+static char file_name_global[100] = "";
 #define PAUSE_PKT_LIMIT 3
+
+void player_set_file(const char * name)
+{
+    strncpy( file_name_global, name, 100 );
+    fprintf( stderr, "\nNew file name %s   \n\n", file_name_global );
+}
 
 void player_add_write_bytes(int wbytes)
 {
@@ -180,7 +188,8 @@ void handle_req(int fd, int client_num)
 	int read_now = 0;
 	uint32_t typical_usleep =((double)(BUFSIZE*8)/(this_movi_rate))*1000000;
 
-	while(( file_fd = open("/sdcard/1009.mp4",O_RDONLY)) == -1){ /* open the file for reading */
+	while( *file_name_global == '\0' ||
+        (file_fd = open( file_name_global, O_RDONLY)) == -1){ /* open the file for reading */
 		 
 		fprintf(stderr, "failed to open file, waiting for the file %d\n", errno);
 		//exit(1);

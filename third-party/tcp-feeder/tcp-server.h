@@ -30,4 +30,6 @@ void start_play();
 void pause_play();
 void stop_play();
 void start_forced_play();
+
+void player_set_file(const char * name);
 #endif

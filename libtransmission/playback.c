@@ -33,17 +33,17 @@
 #include "torrent.h"
 
 
-#define UPDATE_TIME_MSEC 2000
+#define UPDATE_TIME_MSEC 500
 
-/** manip.mp4
+/** specific to manip.mp4
  * size : 19010333
  *  duration : 5*60 + 14 = 314
  *  B/s : 60543
- * buffer : 5s -> 302715
  */
-#define BUFFER_SIZE 302715
+#define BUFFER_SIZE 3 * 60543
 
 
+/* opaque structure to keep informations about the playback */
 struct playback
 {
     struct peer_update_agent pua;
@@ -53,6 +53,8 @@ struct playback
 };
 
 static struct playback pb;
+
+
 
 /**
  * Return a timer to call the callback function after msec millisecondes
@@ -68,7 +70,8 @@ createTimer( int msec, void (*callback)(int, short, void *), void * cbdata )
     return timer;
 }
 
-void SigHandler( int signum UNUSED )
+static void
+SigHandler( int signum UNUSED )
 {
 
 }
@@ -81,42 +84,29 @@ void SigHandler( int signum UNUSED )
 static void
 updatePlaybackStatus( int foo UNUSED, short bar UNUSED, void * vsession UNUSED )
 {
-    tr_piece_index_t it;
-    uint32_t sum = 0;
-
-
-    /* check */
-    for( it = 0 ; it < tr_cpNextInOrdrerPiece( &pb.tor->completion ) ; it++)
-        sum += tr_torPieceCountBytes( pb.tor, it );
-
-    fprintf( stderr, "\nPeriodicCheck %d \n written bytes : %llu  - sum: %u -   readBytes = %llu \n\n",
-             is_player_ready(),
-             pb.writtenBytes, sum, player_get_read_bytes() );
-
-    if( !get_play_status() && pb.writtenBytes > player_get_read_bytes() + BUFFER_SIZE )
+    if( is_movi_download_finished() )
     {
-        if( is_player_ready() )
-        {
-            fprintf( stderr, "Continue play \n" );
-            continue_play();
-        }
-        else
-        {
-            start_play();
-            fprintf( stderr, "Continue play \n" );
-        }
+        /* make sure we are playing and don't call that function anymore */
+        start_play();
+    }
+    else if( pb.writtenBytes > player_get_read_bytes() + BUFFER_SIZE)
+    {
+        start_play();
+        tr_timerAddMsec( pb.timer, UPDATE_TIME_MSEC );
     }
     else
     {
-        fprintf( stderr, "Else \n" );
+        if( get_play_status() == 1)
+            pause_play();
+        tr_timerAddMsec( pb.timer, UPDATE_TIME_MSEC );
     }
-
-    tr_timerAddMsec( pb.timer, UPDATE_TIME_MSEC );
 }
 
-void tr_playbackInit( tr_session * session UNUSED )
+void tr_playbackInit( tr_session * session )
 {
     uint8_t mac_addr[MAC_ADDR_LEN];
+
+    tr_sessionSetIncompleteFileNamingEnabled( session, FALSE );
 
     /* bullshit parameters */
     init_peer_update_agent( &pb.pua, NULL, 7, mac_addr, SigHandler );
@@ -125,6 +115,7 @@ void tr_playbackInit( tr_session * session UNUSED )
 
     pb.writtenBytes = 0;
     pb.tor = NULL;
+    pb.timer = NULL;
 }
 
 void tr_playbackFinish( tr_session * session UNUSED)
@@ -132,10 +123,13 @@ void tr_playbackFinish( tr_session * session UNUSED)
     tcp_serv_finish();
     cmd_server_finish();
     stop_peer_update_agent( &pb.pua );
+
+    if( pb.timer != NULL )
+        tr_free( pb.timer );
 }
 
 /** Right now we only support one playback per session.
- * This function should be called to decide which to use (no multi-file torrents) */
+ * This function should be called to decide which torrent to use (no multi-file torrents) */
 void tr_playbackSetTorrent( const tr_torrent * tor )
 {
     if( pb.tor == NULL )
@@ -143,6 +137,7 @@ void tr_playbackSetTorrent( const tr_torrent * tor )
         if( tr_torrentHasMetadata( tor ) && tr_torrentInfo( tor )->fileCount == 1)
         {
             pb.tor = (tr_torrent *) tor;
+            player_set_file( tr_torrentFindFile( tor, 0 ) );
             pb.timer = createTimer( UPDATE_TIME_MSEC, updatePlaybackStatus, tor->session );
         }
         else
@@ -160,11 +155,14 @@ void tr_playbackSetWrittenBytes( const tr_torrent * tor, uint64_t bytes )
 {
     if( pb.tor == tor && pb.writtenBytes != bytes )
     {
+        /* Inform the server about new bytes  */
         assert( bytes > pb.writtenBytes );
+
         player_add_write_bytes( (int) ( bytes - pb.writtenBytes ) );
         pb.writtenBytes = bytes;
     }
 
+    /* Is the download finished ? */
     if( pb.writtenBytes == tr_torrentInfo( tor )->totalSize )
         set_movi_finish_download();
 }
