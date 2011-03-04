@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <limits.h> /* INT_MAX */
+#include <math.h>
 #include <string.h> /* memcpy, memcmp, strstr */
 #include <stdlib.h> /* qsort */
 
@@ -165,7 +166,7 @@ struct block_request
 struct weighted_piece
 {
     tr_piece_index_t index;
-    int16_t salt;
+    float salt;
     int16_t requestCount;
     int maxDup;
 };
@@ -1135,6 +1136,20 @@ pieceListOrderSort( Torrent * t )
     assertOrderPiecesAreSorted( t );
 }
 
+static void
+updateZipfProbabilities( Torrent * t )
+{
+    int it;
+    const float firstMissing = (float) tr_cpNextInOrdrerPiece( &t->tor->completion );
+    const float power = 1.25;
+
+    assert( tr_torIsZipf( t->tor ) );
+
+    for( it=(int)firstMissing ; it<t->pieceCount ; it++ )
+    {
+        t->pieces[it].salt = 1/ ( pow(it + 1 - firstMissing, power) );
+    }
+}
 
 static tr_bool
 isInEndgame( Torrent * t )
@@ -1181,6 +1196,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     Torrent * t;
     tr_bool endgame;
     tr_bool getInOrder;
+    tr_bool finished;
     tr_piece_index_t * pieces;
     int pieceCount;
     const tr_bitset * have = &peer->have;
@@ -1224,17 +1240,17 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
         pieceCount = t->pieceCountRarest;
     }
 
-    for( i=0; i<pieceCount && got<numwant; ++i )
+    i = 0;
+    finished = i>=pieceCount || got>=numwant;
+
+    while( !finished )
     {
         struct weighted_piece * p = pieceListLookup( t, pieces[i] );
         const int missing = tr_cpMissingBlocksInPiece( &tor->completion, p->index );
         const int maxDuplicatesPerBlock = endgame ? 3 : p->maxDup;
 
-        if( p->requestCount > ( missing * maxDuplicatesPerBlock ) )
-            continue;
-
         /* if the peer has this piece that we want... */
-        if( tr_bitsetHasFast( have, p->index ) )
+        if( p->requestCount <= ( missing * maxDuplicatesPerBlock ) && tr_bitsetHasFast( have, p->index ) )
         {
             tr_block_index_t b = tr_torPieceFirstBlock( tor, p->index );
             const tr_block_index_t e = b + tr_torPieceCountBlocks( tor, p->index );
@@ -1261,6 +1277,9 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
                 p->requestCount++ ;
             }
         }
+
+        ++i;
+        finished = i>=pieceCount || got>+numwant;
     }
 
     /* In most cases we've just changed the weights of a small number of pieces.
@@ -1629,6 +1648,7 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
                 {
                     if( updateMaxDuplicatesForPiece( tor, tr_cpNextInOrdrerPiece( &tor->completion ) ) )
                         pieceListResortPiece( t, tr_cpNextInOrdrerPiece( &tor->completion ) );
+                    updateZipfProbabilities( t );
                 }
 
                 tr_torrentSetDirty( tor );
@@ -3889,6 +3909,9 @@ pieceListRebuild( Torrent * t )
                 if( !tr_cpPieceIsComplete( &tor->completion, i ) )
                     pool[poolCount++] = i;
         }
+
+        if( tr_torIsZipf( t->tor ) )
+            updateZipfProbabilities( t );
 
 
 

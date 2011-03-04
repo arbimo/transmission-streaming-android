@@ -351,7 +351,7 @@ static inline tr_bool tr_torrentIsPieceChecked( const tr_torrent  * tor,
     return tr_bitfieldHasFast( &tor->checkedPieces, i );
 }
 
-static inline tr_torIsZipf( const tr_torrent * tor )
+static inline tr_bool tr_torIsZipf( const tr_torrent * tor )
 {
     return tor->session->useZipf;
 }
