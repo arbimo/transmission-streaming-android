@@ -192,6 +192,8 @@ typedef struct tr_torrent_peers
     struct weighted_piece    * pieces;
     int                        pieceCount;
 
+    /* Sorted lists of pieces from high to low priorities for both
+     * the rarest-first and the in-order policies */
     tr_piece_index_t         * piecesRarest;
     int                        pieceCountRarest; 
     tr_piece_index_t         * piecesOrder;
@@ -323,7 +325,9 @@ static void pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index );
 /**
  * Update the maxDup parameter of the corresponding weighted piece.
  * Return TRUE if maxDup was changed, FALSE otherwise
- *  DEACTIVATED !!!
+ *
+ * This is used in order to request late subpieces when doing streaming.
+ *  DEACTIVATED 
  */
 static inline tr_bool updateMaxDuplicatesForPiece( tr_torrent * tor, const tr_piece_index_t index )
 {
@@ -1270,9 +1274,6 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
         weightTorrent = t->tor;
 
-        /* not enough requests || last piece modified */
-        if ( i == pieceCount ) --i;
-
         tmp = (tr_piece_index_t *) tr_new( tr_piece_index_t, i+1 );
 
         nbPiecesRequested = 0;
@@ -1526,7 +1527,7 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
 
         case TR_PEER_PEER_GOT_BITFIELD:
         {
-            assert( e->bitset != 0 );
+            assert( e->bitset != NULL );
             tr_incrReplicationFromBitset( t, e->bitset );
             break;
         }
@@ -3882,12 +3883,11 @@ pieceListRebuild( Torrent * t )
             piece->salt = tr_cryptoWeakRandInt( 4096 );
             piece->maxDup = 1;
 
+            /* track the pieces we will need to download */
             if( !inf->pieces[i].dnd )
                 if( !tr_cpPieceIsComplete( &tor->completion, i ) )
                     pool[poolCount++] = i;
         }
-
-
 
         /* if we already had a list of pieces, merge it into
          * the new list so we don't lose its requestCounts */
@@ -3912,6 +3912,12 @@ pieceListRebuild( Torrent * t )
 
         t->pieces = pieces;
         t->pieceCount = inf->pieceCount;
+
+        if( t->piecesOrder != NULL )
+            tr_free( t->piecesOrder );
+
+        if( t->piecesRarest != NULL )
+            tr_free( t->piecesRarest );
 
         /* Only the pieces still to download are in the sorted lists */
         t->pieceCountOrder = 0;
