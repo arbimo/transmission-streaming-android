@@ -239,9 +239,12 @@ struct tr_peerMgr
 
 
 
-/**
+/*
  *   Replication count manipulation functions ( declarations )
  */
+
+
+
 
 
 /**
@@ -307,7 +310,10 @@ static void pieceListRemoveRequest( Torrent * t, tr_block_index_t block );
 
 static int piecePosInOrder( Torrent * t, tr_piece_index_t index );
 static int piecePosInRarest( Torrent * t, tr_piece_index_t index );
-static inline struct weighted_piece * pieceListLookup( Torrent * t, tr_piece_index_t index );
+static inline struct weighted_piece * pieceListLookup( const Torrent * t, tr_piece_index_t index )
+{
+    return &t->pieces[index] ;
+}
 
 static void removeFromSortedLists( Torrent * t, tr_piece_index_t index );
 static void insertInSortedLists( Torrent * t, tr_piece_index_t index );
@@ -319,6 +325,20 @@ static void pieceListRarestSort( Torrent * t );
 static void pieceListResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListOrderResortPiece( Torrent * t, tr_piece_index_t index );
 static void pieceListRarestResortPiece( Torrent * t, tr_piece_index_t index );
+
+/**
+ *   Zipf Related functions
+ */
+
+/* Update the probability associated with each piece.
+ * This parameter is stocked in weighted_piece->salt */
+static void
+updateZipfProbabilities( Torrent * t );
+
+/* Return an array of pieces that can be parsed in order to compute the next
+ * requests to make to a specific peer */
+static tr_piece_index_t *
+createZipfPiecesArray( const Torrent * t, const tr_peer * peer, int * length );
 
 
 /**
@@ -1136,21 +1156,6 @@ pieceListOrderSort( Torrent * t )
     assertOrderPiecesAreSorted( t );
 }
 
-static void
-updateZipfProbabilities( Torrent * t )
-{
-    int it;
-    const float firstMissing = (float) tr_cpNextInOrdrerPiece( &t->tor->completion );
-    const float power = 1.25;
-
-    assert( tr_torIsZipf( t->tor ) );
-
-    for( it=(int)firstMissing ; it<t->pieceCount ; it++ )
-    {
-        t->pieces[it].salt = 1/ ( pow(it + 1 - firstMissing, power) );
-    }
-}
-
 static tr_bool
 isInEndgame( Torrent * t )
 {
@@ -1195,7 +1200,6 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     int got;
     Torrent * t;
     tr_bool endgame;
-    tr_bool getInOrder;
     tr_bool finished;
     tr_piece_index_t * pieces;
     int pieceCount;
@@ -1211,8 +1215,6 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
     got = 0;
     t = tor->torrentPeers;
 
-    if( tr_torIsZipf( tor ) )
-        fprintf( stderr, "Zipf\n" );
 
     /* prep the pieces list */
     if( t->pieces == NULL )
@@ -1227,17 +1229,26 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
 
     endgame = isInEndgame( t );
-    getInOrder = tr_cryptoWeakRandInt( 100 ) >= tor->session->rarestPortion;
 
-    if( getInOrder )
+
+    if( tr_torIsZipf( tor ) ) /* Zipf */
     {
-        pieces = t->piecesOrder;
-        pieceCount = t->pieceCountOrder;
+        pieces = createZipfPiecesArray( t, peer, &pieceCount );
     }
-    else
+    else /* Portion */
     {
-        pieces = t->piecesRarest;
-        pieceCount = t->pieceCountRarest;
+        if( tr_cryptoWeakRandInt( 100 ) >= tor->session->rarestPortion )
+        {
+            /*choose in order */
+            pieces = t->piecesOrder;
+            pieceCount = t->pieceCountOrder;
+        }
+        else
+        {
+            /* choose with rarest-first */
+            pieces = t->piecesRarest;
+            pieceCount = t->pieceCountRarest;
+        }
     }
 
     i = 0;
@@ -1299,7 +1310,7 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
 
         nbPiecesRequested = 0;
 
-        /* save all the pieces modified */
+        /* save all the modified pieces */
         for( it=0 ; it<got ; it++ )
         {
             if( nbPiecesRequested == 0 
@@ -1325,6 +1336,9 @@ tr_peerMgrGetNextRequests( tr_torrent           * tor,
         tr_free( tmp );
 
     }
+
+    if( tr_torIsZipf( tor ) && pieces != NULL )
+        tr_free( pieces );
 
     assertWeightedListsAreConsistent( t );
     assertWeightedPiecesAreSorted( t );
@@ -1648,7 +1662,6 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
                 {
                     if( updateMaxDuplicatesForPiece( tor, tr_cpNextInOrdrerPiece( &tor->completion ) ) )
                         pieceListResortPiece( t, tr_cpNextInOrdrerPiece( &tor->completion ) );
-                    updateZipfProbabilities( t );
                 }
 
                 tr_torrentSetDirty( tor );
@@ -1670,6 +1683,9 @@ peerCallbackFunc( void * vpeer, void * vevent, void * vt )
                     tr_torrentSetHasPiece( tor, p, ok );
                     tr_torrentSetPieceChecked( tor, p, TRUE );
                     tr_peerMgrSetBlame( tor, p, ok );
+
+                    if( tr_torIsZipf( tor ) )
+                        updateZipfProbabilities( t );
 
                     if( !ok )
                     {
@@ -4003,13 +4019,6 @@ pieceListRemoveRequest( Torrent * t, tr_block_index_t block )
     }
 }
 
-static struct weighted_piece *
-pieceListLookup( Torrent * t, tr_piece_index_t index )
-{
-    assert( t->pieces[index].index == index );
-    return( &t->pieces[index] );
-}
-
 int
 piecePosInOrder( Torrent * t, tr_piece_index_t index )
 {
@@ -4188,6 +4197,119 @@ void insertInSortedLists( Torrent * t, tr_piece_index_t index )
 
     assertWeightedPiecesAreSorted( t );
 }
+
+
+/**
+ *   Zipf Related functions
+ */
+
+static void
+updateZipfProbabilities( Torrent * t )
+{
+    int it;
+    const float firstMissing = (float) tr_cpNextInOrdrerPiece( &t->tor->completion );
+    const float power = 1.25;
+
+    assert( tr_torIsZipf( t->tor ) );
+
+    for( it=(int)firstMissing ; it<t->pieceCount ; it++ )
+    {
+        t->pieces[it].salt = 1/ ( pow(it + 1 - firstMissing, power) );
+    }
+}
+
+static tr_piece_index_t *
+createZipfPiecesArray( const Torrent * t, const tr_peer * peer, int * length )
+{
+    tr_piece_index_t * array;
+    int it;
+    int startUnorderedPieces, endUnorderedPieces;
+    float sum;
+
+
+    *length = 0;
+
+    if( t->pieceCountOrder == 0 )
+        return NULL;
+
+    array = tr_new( tr_piece_index_t, t->pieceCountOrder );
+
+    startUnorderedPieces = -1;
+    endUnorderedPieces = -1;
+
+    /* copy the pieces we want and that the peer has to the new array.
+     * Mark the beginning and end of the pieces on which we will apply zipf */
+    for( it=0 ; it < t->pieceCountOrder ; it++ )
+    {
+        const struct weighted_piece * p = pieceListLookup( t, t->piecesOrder[it] );
+        const int missing = tr_cpMissingBlocksInPiece( &t->tor->completion, p->index );
+        const int nbBlocks = (int) tr_torPieceCountBlocks( t->tor, p->index );
+
+        if( !tr_bitsetHas( &peer->have, p->index ) )
+            continue;
+
+        if( p->requestCount == 0 && missing == nbBlocks ) /* second part of the array */
+        {
+            /* we are treating pieces that have not been requested (even partially) yet */
+            if( startUnorderedPieces == -1 )
+                startUnorderedPieces = (*length);
+
+            endUnorderedPieces = (*length);
+        }
+        else if( p->requestCount >= missing ) /* third part */
+        {
+            assert( (startUnorderedPieces == -1 && endUnorderedPieces == -1)
+                        || (startUnorderedPieces >= 0 && endUnorderedPieces >= startUnorderedPieces) );
+        }
+        else if( missing != nbBlocks || p->requestCount > 0 ) /* First part */
+        {
+            assert( (startUnorderedPieces == -1 && endUnorderedPieces == -1) );
+        }
+        else  /* there is a problem here */
+            assert( FALSE );
+
+        array[*length] = p->index;
+        (*length)++;
+    }
+
+    /* compute the sum of all the zipf/salt coefficients */
+    sum = 0.0;
+    for( it=startUnorderedPieces ; it<=endUnorderedPieces ; it++ )
+    {
+        sum += pieceListLookup( t, array[it] )->salt;
+    }
+
+    /* Re-order the normal priority pieces according to the zipf policy */
+    while( startUnorderedPieces != endUnorderedPieces )
+    {
+        float rand;
+        float partialSum;
+        tr_piece_index_t tmp;
+
+        /* choose a random float in [0 .. sum] */
+        rand = ((float) tr_cryptoWeakRandInt( RAND_MAX )) / (float) RAND_MAX * sum;
+
+        partialSum = pieceListLookup( t, array[startUnorderedPieces] )->salt;
+        it=startUnorderedPieces;
+
+        /* loop until we find the corresponding piece
+         * FIXME: this is really expensive */
+        while( rand > partialSum )
+            partialSum += pieceListLookup( t, array[++it] )->salt;
+
+        /* put the selected piece at the beginning  */
+        tmp = array[it];
+        array[it] = array[startUnorderedPieces];
+        array[startUnorderedPieces] = tmp;
+
+        /* re-start from the beginning+1 piece */
+        sum -= pieceListLookup( t, array[startUnorderedPieces] )->salt;
+        startUnorderedPieces++;
+    }
+
+    return array;
+}
+
 
 
 
