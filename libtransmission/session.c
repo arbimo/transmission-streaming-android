@@ -275,6 +275,7 @@ tr_sessionGetDefaultSettings( const char * configDir UNUSED, tr_benc * d )
     tr_bencDictAddStr ( d, TR_PREFS_KEY_PROXY_USERNAME,           "" );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       TRUE );
     tr_bencDictAddBool( d, TR_PREFS_KEY_USE_ZIPF,                 FALSE );
+    tr_bencDictAddReal( d, TR_PREFS_KEY_ZIPF_TETA,                1.25 );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_RAREST_PORTION,           10 );
     tr_bencDictAddReal( d, TR_PREFS_KEY_RATIO,                    2.0 );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RATIO_ENABLED,            FALSE );
@@ -345,7 +346,6 @@ tr_sessionGetSettings( tr_session * s, struct tr_benc * d )
     tr_bencDictAddInt ( d, TR_PREFS_KEY_PROXY_TYPE,               s->proxyType );
     tr_bencDictAddStr ( d, TR_PREFS_KEY_PROXY_USERNAME,           s->proxyUsername );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RANDOM_DECIDE_LAST,       s->randomDecideLast );
-    tr_bencDictAddBool( d, TR_PREFS_KEY_USE_ZIPF,                 s->useZipf );
     tr_bencDictAddInt ( d, TR_PREFS_KEY_RAREST_PORTION,           s->rarestPortion );
     tr_bencDictAddReal( d, TR_PREFS_KEY_RATIO,                    s->desiredRatio );
     tr_bencDictAddBool( d, TR_PREFS_KEY_RATIO_ENABLED,            s->isRatioLimited );
@@ -376,6 +376,8 @@ tr_sessionGetSettings( tr_session * s, struct tr_benc * d )
     tr_bencDictAddBool( d, TR_PREFS_KEY_START,                    !tr_sessionGetPaused( s ) );
     tr_bencDictAddBool( d, TR_PREFS_KEY_TRASH_ORIGINAL,           tr_sessionGetDeleteSource( s ) );
     tr_bencDictAddBool( d, TR_PREFS_KEY_INSTRUMENTATION_ENABLED,  s->isInstruEnabled );
+    tr_bencDictAddBool( d, TR_PREFS_KEY_USE_ZIPF,                 s->useZipf );
+    tr_bencDictAddReal( d, TR_PREFS_KEY_ZIPF_TETA,                s->zipfTeta );
 }
 
 tr_bool
@@ -655,9 +657,10 @@ tr_sessionInitImpl( void * vdata )
                       session->rarestPortion,
                       session->randomDecideLast ? "RAND" : "ORD" );
     else
-        tr_instruMsg( session, "CF DHT %s LPD %s ZIPF",
+        tr_instruMsg( session, "CF DHT %s LPD %s ZIPF %f",
                       session->isDHTEnabled ? "YES" : "NO",
-                      session->isLPDEnabled ? "YES" : "NO" );
+                      session->isLPDEnabled ? "YES" : "NO",
+                      session->zipfTeta );
 
     /* cleanup */
     tr_bencFree( &settings );
@@ -852,6 +855,8 @@ sessionSetImpl( void * vdata )
         session->rarestPortion = i;
     if( tr_bencDictFindBool( settings, TR_PREFS_KEY_USE_ZIPF, &boolVal ) )
         session->useZipf = boolVal;
+    if( tr_bencDictFindReal( settings, TR_PREFS_KEY_ZIPF_TETA, &d ) )
+        session->zipfTeta = d;
 
     data->done = TRUE;
 }

@@ -194,6 +194,7 @@ const char* tr_getDefaultDownloadDir( void );
 #define TR_PREFS_KEY_RANDOM_DECIDE_LAST            "random-decide_last"
 #define TR_PREFS_KEY_RAREST_PORTION                "rarest-portion"
 #define TR_PREFS_KEY_USE_ZIPF                      "use-zipf"
+#define TR_PREFS_KEY_ZIPF_TETA                     "zipf-teta"
 #define TR_PREFS_KEY_RATIO                         "ratio-limit"
 #define TR_PREFS_KEY_RATIO_ENABLED                 "ratio-limit-enabled"
 #define TR_PREFS_KEY_RENAME_PARTIAL_FILES          "rename-partial-files"

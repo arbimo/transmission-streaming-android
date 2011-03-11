@@ -188,7 +188,10 @@ struct tr_session
     int                          rarestPortion;
     /* TRUE if the fourth selection mechanism is random */
     tr_bool                      randomDecideLast;
+
+    /* TRUE if we use Zipf */
     tr_bool                      useZipf;
+    double                       zipfTeta;
 };
 
 tr_bool      tr_sessionAllowsDHT( const tr_session * session );

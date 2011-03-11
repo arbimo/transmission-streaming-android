@@ -4208,7 +4208,7 @@ updateZipfProbabilities( Torrent * t )
 {
     int it;
     const float firstMissing = (float) tr_cpNextInOrdrerPiece( &t->tor->completion );
-    const float power = 1.25;
+    const float power = t->tor->session->zipfTeta;
 
     assert( tr_torIsZipf( t->tor ) );
 
