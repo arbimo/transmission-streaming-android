@@ -179,15 +179,19 @@ struct tr_session
     void * buffer;
 
     tr_bool bufferInUse;
-    
+
     tr_bool                      isInstruEnabled;
     /* file descriptor for the instrumentation output */
     int                          fd_instru; 
 
     /* The percentage of pieces that should be requested with the rarest first policy */
-    int rarestPortion;
+    int                          rarestPortion;
     /* TRUE if the fourth selection mechanism is random */
-    tr_bool randomDecideLast;
+    tr_bool                      randomDecideLast;
+
+    /* TRUE if we use Zipf */
+    tr_bool                      useZipf;
+    double                       zipfTeta;
 };
 
 tr_bool      tr_sessionAllowsDHT( const tr_session * session );
