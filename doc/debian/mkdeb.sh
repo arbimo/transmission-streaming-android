@@ -1,5 +1,9 @@
 #!/bin/sh
 
+make clean
+./autogen.sh --disable-cli --disable-gtk --disable-macosx
+make
+cd doc/debian
 mkdir -p ./debian/usr/bin
 cp ../../daemon/transmission-daemon ./debian/usr/bin
 cp ../../daemon/transmission-remote ./debian/usr/bin
