@@ -3926,10 +3926,6 @@ pieceListRebuild( Torrent * t )
                     pool[poolCount++] = i;
         }
 
-        if( tr_torIsZipf( t->tor ) )
-            updateZipfProbabilities( t );
-
-
 
         /* if we already had a list of pieces, merge it into
          * the new list so we don't lose its requestCounts */
@@ -3954,6 +3950,9 @@ pieceListRebuild( Torrent * t )
 
         t->pieces = pieces;
         t->pieceCount = inf->pieceCount;
+
+        if( tr_torIsZipf( t->tor ) )
+            updateZipfProbabilities( t );
 
         /* Only the pieces still to download are in the sorted lists */
         t->pieceCountOrder = 0;
@@ -4210,14 +4209,20 @@ updateZipfProbabilities( Torrent * t )
     const float firstMissing = (float) tr_cpNextInOrdrerPiece( &t->tor->completion );
     const float power = t->tor->session->zipfTeta;
 
-    assert( tr_torIsZipf( t->tor ) );
-
     for( it=(int)firstMissing ; it<t->pieceCount ; it++ )
-    {
         t->pieces[it].salt = 1/ ( pow(it + 1 - firstMissing, power) );
-    }
 }
 
+/* The pieces are divided in three categories :
+ 1st : already downloaded/requested pieces
+ 2nd : normal priority pieces
+ 3rd : completely downloaded/requested pieces
+ THis function return an array in which the pieces of the second part are ordered
+ according to the zipf policy :
+ "The probability of selecting each of these pieces is chosen to be proportionnal to
+ 1/(k+1- k0)^teta where k is the index of the piece and k0 is the index of the
+ first missing piece."
+ */
 static tr_piece_index_t *
 createZipfPiecesArray( const Torrent * t, const tr_peer * peer, int * length )
 {
@@ -4225,7 +4230,6 @@ createZipfPiecesArray( const Torrent * t, const tr_peer * peer, int * length )
     int it;
     int startUnorderedPieces, endUnorderedPieces;
     float sum;
-
 
     *length = 0;
 
@@ -4245,6 +4249,7 @@ createZipfPiecesArray( const Torrent * t, const tr_peer * peer, int * length )
         const int missing = tr_cpMissingBlocksInPiece( &t->tor->completion, p->index );
         const int nbBlocks = (int) tr_torPieceCountBlocks( t->tor, p->index );
 
+        /* Only treat a piece if the peer has it */
         if( !tr_bitsetHas( &peer->have, p->index ) )
             continue;
 
@@ -4275,9 +4280,7 @@ createZipfPiecesArray( const Torrent * t, const tr_peer * peer, int * length )
     /* compute the sum of all the zipf/salt coefficients */
     sum = 0.0;
     for( it=startUnorderedPieces ; it<=endUnorderedPieces ; it++ )
-    {
         sum += pieceListLookup( t, array[it] )->salt;
-    }
 
     /* Re-order the normal priority pieces according to the zipf policy */
     while( startUnorderedPieces != endUnorderedPieces )
