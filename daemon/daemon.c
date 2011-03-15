@@ -417,6 +417,7 @@ main( int argc, char ** argv )
             case 850: tr_bencDictAddBool( &settings, TR_PREFS_KEY_INSTRUMENTATION_ENABLED, TRUE);
                       break;
             case 851: tr_bencDictAddInt( &settings, TR_PREFS_KEY_RAREST_PORTION, atoi(optarg) );
+                      tr_bencDictAddBool( &settings, TR_PREFS_KEY_USE_ZIPF, FALSE );
                       break;
             case 852: tr_bencDictAddBool( &settings, TR_PREFS_KEY_RANDOM_DECIDE_LAST, TRUE );
                       break;
