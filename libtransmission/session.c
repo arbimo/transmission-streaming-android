@@ -520,6 +520,7 @@ tr_sessionInit( const char  * tag,
     session->tag = tr_strdup( tag );
     session->magicNumber = SESSION_MAGIC_NUMBER;
     session->buffer = tr_valloc( SESSION_BUFFER_SIZE );
+    session->useZipf = FALSE;
     tr_bencInitList( &session->removedTorrents, 0 );
 
     /* nice to start logging at the very beginning */
