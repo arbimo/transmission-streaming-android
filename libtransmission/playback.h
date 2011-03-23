@@ -39,8 +39,8 @@ void tr_playbackFinish( tr_session * session );
 /* Set the played torrent to tor, any other torrent will be ignored */
 void tr_playbackSetTorrent( const tr_torrent * tor );
 
-/* tell the player that newbytes in order bytes were added to the torrent tor */
-void tr_playbackSetWrittenBytes( const tr_torrent * tor, uint64_t newbytes );
+/* tell the player that we have @bytes in order bytes available */
+void tr_playbackSetWrittenBytes( const tr_torrent * tor, uint64_t bytes );
 
 #else
 
