@@ -42,7 +42,7 @@ static char file_name_global[100] = "";
 void player_set_file(const char * name)
 {
     strncpy( file_name_global, name, 100 );
-    fprintf( stderr, "\nNew file name %s   \n\n", file_name_global );
+    fprintf( stderr, "File to read :  %s\n", file_name_global );
 }
 
 void player_add_write_bytes(int wbytes)
@@ -305,10 +305,18 @@ void *start_data_server(void *args)
 		  {
 			perror("setsockopt failed for tcp_data_server on SO_REUSEADDR");			            /* some error has occurred, etc */
 		  }
+
+		  /* Set the KEEP_ALIVE option to avoid broken pipes when not transmitting data during a few seconds */
+		  on = 1;
+		  if(setsockopt(data_server_fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) < 0)
+		  {
+			perror("setsockopt()for tcp_data_server on SO_KEEPALIVE");
+		  }
+
 		  if (bind(data_server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
 			char errbg[100];
 			sprintf(errbg,"bind() failed for tcp_data_server on %s:%d ",inet_ntoa(addr.sin_addr),DATA_PORT);
-		        perror(errbg);
+			perror(errbg);
 			fprintf(stderr,"start_data_server() : bind() failed for tcp_data_server on %s:%d  due to error : %d - %s\n",inet_ntoa(addr.sin_addr),DATA_PORT,errno,strerror(errno));
 			fprintf(stderr,"start_data_server() : calling kill -2 on pid %d\n",localpid);
 			kill(localpid,SIGINT);
