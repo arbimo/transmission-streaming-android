@@ -29,77 +29,27 @@
 
 #include "transmission.h"
 #include "completion.h"
-#include "event.h"
 #include "torrent.h"
 
 
-#define UPDATE_TIME_MSEC 500
-
-/** specific to manip.mp4
- * size : 19010333
- *  duration : 5*60 + 14 = 314
- *  B/s : 60543
- */
-#define BUFFER_SIZE 3 * 60543
 
 
 /* opaque structure to keep informations about the playback */
 struct playback
 {
     struct peer_update_agent pua;
-    struct event * timer;
     tr_torrent * tor;
     uint64_t writtenBytes;
+    tr_bool started;
 };
 
 static struct playback pb;
 
 
-
-/**
- * Return a timer to call the callback function after msec millisecondes
- * cbdata is passed as the third argument
- * this timer can be incremented/relaunched by calling tr_timerAddMsec( )
- */
-static struct event *
-createTimer( int msec, void (*callback)(int, short, void *), void * cbdata )
-{
-    struct event * timer = tr_new0( struct event, 1 );
-    evtimer_set( timer, callback, cbdata );
-    tr_timerAddMsec( timer, msec );
-    return timer;
-}
-
 static void
 SigHandler( int signum UNUSED )
 {
 
-}
-
-/**
- * This function is called at list once per second
- * It notifies the player if
- * it should start playing or stop playing
- */
-static void
-updatePlaybackStatus( int foo UNUSED, short bar UNUSED, void * vsession UNUSED )
-{
-    if( is_movi_download_finished() )
-    {
-        /* make sure we are playing and don't call that function anymore */
-        start_play();
-    }
-    else if( pb.writtenBytes > player_get_read_bytes() + BUFFER_SIZE)
-    {
-        start_play();
-        tr_timerAddMsec( pb.timer, UPDATE_TIME_MSEC );
-    }
-    else
-    {
-        if( get_play_status() == 1)
-            pause_play();
-        tr_timerAddMsec( pb.timer, UPDATE_TIME_MSEC );
-    }
 }
 
 void tr_playbackInit( tr_session * session )
@@ -115,7 +65,7 @@ void tr_playbackInit( tr_session * session )
 
     pb.writtenBytes = 0;
     pb.tor = NULL;
-    pb.timer = NULL;
+    pb.started = FALSE;
 }
 
 void tr_playbackFinish( tr_session * session UNUSED)
@@ -123,9 +73,6 @@ void tr_playbackFinish( tr_session * session UNUSED)
     tcp_serv_finish();
     cmd_server_finish();
     stop_peer_update_agent( &pb.pua );
-
-    if( pb.timer != NULL )
-        tr_free( pb.timer );
 }
 
 /** Right now we only support one playback per session.
@@ -138,7 +85,6 @@ void tr_playbackSetTorrent( const tr_torrent * tor )
         {
             pb.tor = (tr_torrent *) tor;
             player_set_file( tr_torrentFindFile( tor, 0 ) );
-            pb.timer = createTimer( UPDATE_TIME_MSEC, updatePlaybackStatus, tor->session );
         }
         else
         {
@@ -160,6 +106,14 @@ void tr_playbackSetWrittenBytes( const tr_torrent * tor, uint64_t bytes )
 
         player_add_write_bytes( (int) ( bytes - pb.writtenBytes ) );
         pb.writtenBytes = bytes;
+    }
+
+    /* start playing when the start up delay is passed
+     * Here we use a 5% buffer */
+    if( pb.writtenBytes > tr_torrentInfo( tor )->totalSize * 0.05  && !pb.started )
+    {
+        start_play();
+        pb.started = TRUE;
     }
 
     /* Is the download finished ? */
