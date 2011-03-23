@@ -201,7 +201,6 @@ void handle_req(int fd, int client_num)
 	int writelen = 0;
 	int dataAvail = 0;
 	int pauseData = 0;
-	unset_movi_finish_download();
 	while (ret > 0) {
 		dataAvail = player_get_write_bytes();
 		read_total = player_get_read_bytes();
